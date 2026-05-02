@@ -1,4 +1,3 @@
-import json
 import sys
 import traceback
 from datetime import datetime
@@ -70,17 +69,9 @@ def main():
         "cme_nikkei_change": data.cme_nikkei_change,
         "cme_nikkei_change_pct": data.cme_nikkei_change_pct,
     }
-    raw_ai = ai_provider.analyze(market_dict, news_context)
+    ai_analysis = ai_provider.analyze(market_dict, news_context)
 
-    try:
-        ai_result = json.loads(raw_ai)
-        full_analysis = ai_result.get("full_analysis", raw_ai)
-        twitter_text = ai_result.get("twitter_text", "")
-    except (ValueError, AttributeError):
-        full_analysis = raw_ai
-        twitter_text = ""
-
-    combined_confidence = combine_confidence(rule_signal, full_analysis)
+    combined_confidence = combine_confidence(rule_signal, ai_analysis)
     print(f"総合確信度: {combined_confidence * 100:.0f}%")
 
     portfolio.last_signal_action = rule_signal.action
@@ -91,21 +82,12 @@ def main():
 
     print("メール送信中...")
     notifier = EmailNotifier()
-    notifier.send_signal_email(rule_signal, full_analysis, data, portfolio, news_items[:5])
+    notifier.send_signal_email(rule_signal, ai_analysis, data, portfolio, news_items[:5])
     print("メール送信完了")
 
     print("LINE通知送信中...")
     notifier.send_line(rule_signal, data, news_items[:3])
     print("LINE通知送信完了")
-
-    if twitter_text and config.TWITTER_API_KEY:
-        print("Twitter投稿中...")
-        try:
-            from src.twitter_poster import post_morning_analysis
-            tweet_url = post_morning_analysis(twitter_text)
-            print(f"Twitter投稿完了: {tweet_url}")
-        except Exception as e:
-            print(f"Twitter投稿失敗（メール/LINEは送信済み）: {e}")
 
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 分析完了")
 
