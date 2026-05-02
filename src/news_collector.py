@@ -90,6 +90,43 @@ def _fetch_rss(source_name: str, feed_url: str) -> list[NewsItem]:
         return []
 
 
+def _is_japanese(text: str) -> bool:
+    japanese_chars = sum(1 for c in text if '　' <= c <= '鿿' or '＀' <= c <= '￯')
+    return japanese_chars > len(text) * 0.1
+
+
+def translate_titles(news_items: list[NewsItem]) -> list[NewsItem]:
+    import config
+    from openai import OpenAI
+
+    targets = [i for i, item in enumerate(news_items) if not _is_japanese(item.title)]
+    if not targets or not config.OPENAI_API_KEY:
+        return news_items
+
+    titles = "\n".join(f"{i+1}. {news_items[idx].title}" for i, idx in enumerate(targets))
+    try:
+        client = OpenAI(api_key=config.OPENAI_API_KEY)
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{
+                "role": "user",
+                "content": f"以下のニュースタイトルを自然な日本語に翻訳・要約してください。番号付きで同じ順番で返してください。\n\n{titles}"
+            }],
+            temperature=0.1,
+        )
+        translated_lines = response.choices[0].message.content.strip().split("\n")
+        translated_lines = [l.strip() for l in translated_lines if l.strip()]
+        for i, idx in enumerate(targets):
+            if i < len(translated_lines):
+                line = translated_lines[i]
+                if ". " in line:
+                    line = line.split(". ", 1)[1]
+                news_items[idx].title = line
+    except Exception:
+        pass
+    return news_items
+
+
 def fetch_news() -> list[NewsItem]:
     import config
     results: list[NewsItem] = []

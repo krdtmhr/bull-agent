@@ -6,7 +6,7 @@ from src.market_data import fetch_market_data
 from src.signal_engine import generate_rule_signal
 from src.portfolio import Portfolio
 from src.notifier import EmailNotifier
-from src.news_collector import fetch_news, format_news_for_ai
+from src.news_collector import fetch_news, format_news_for_ai, translate_titles
 import config
 
 
@@ -49,6 +49,7 @@ def main():
 
     print("ニュース収集中...")
     news_items = fetch_news()
+    news_items = translate_titles(news_items)
     news_context = format_news_for_ai(news_items)
     print(f"ニュース取得完了: {len(news_items)}件")
 
