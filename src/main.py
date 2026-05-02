@@ -69,6 +69,9 @@ def main():
         "cme_nikkei_change": data.cme_nikkei_change,
         "cme_nikkei_change_pct": data.cme_nikkei_change_pct,
     }
+    stance_label = {"BUY": "強気寄り", "SELL": "慎重寄り", "HOLD": "様子見"}
+    market_dict["stance"] = rule_signal.action
+    market_dict["stance_label"] = stance_label[rule_signal.action]
     ai_analysis = ai_provider.analyze(market_dict, news_context)
 
     combined_confidence = combine_confidence(rule_signal, ai_analysis)
