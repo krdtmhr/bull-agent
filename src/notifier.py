@@ -103,6 +103,18 @@ class EmailNotifier:
 
         cme_warn = "  ⚠️ 日本株の明日の見通しはマイナス" if data.cme_nikkei_change < 0 else "  ✅ 日本株の明日の見通しはプラス"
 
+        vix = data.vix_close
+        if vix >= 30:
+            vix_label = "🚨 危険水準（大荒れに注意）"
+        elif vix >= 25:
+            vix_label = "⚠️ 警戒水準（荒れやすい）"
+        elif vix >= 20:
+            vix_label = "😟 やや不安定"
+        else:
+            vix_label = "😌 落ち着いている"
+
+        us10y_note = "金利上昇中（株の下押し要因）" if data.us10y_change > 0 else "金利低下中（株の支援要因）"
+
         # ニュース（タイトルのみ・URLなし）
         news_section = ""
         if news_items:
@@ -146,6 +158,14 @@ class EmailNotifier:
 
 📌 ドル・円（為替）
    1ドル = {data.usdjpy_rate:.2f}円  {usdjpy_note}
+
+📌 VIX（恐怖指数・市場の不安度）
+   {data.vix_close:.2f}  {vix_label}（前日比 {data.vix_change:+.2f}）
+   ※ 20以下：安定、25超：警戒、30超：大荒れ注意（4.3倍ブルに直撃）
+
+📌 米国10年債利回り（金利）
+   {data.us10y_rate:.2f}%  {us10y_note}（前日比 {data.us10y_change:+.2f}%）
+   ※ 金利が上がると株が下がりやすい傾向がある
 
 {"=" * 46}
 {news_section}{"=" * 46}

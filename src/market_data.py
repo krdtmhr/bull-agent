@@ -17,10 +17,6 @@ class MarketData:
     nasdaq_change: float
     nasdaq_change_pct: float
 
-    dow_close: float
-    dow_change: float
-    dow_change_pct: float
-
     usdjpy_rate: float
     usdjpy_change: float
     usdjpy_change_pct: float
@@ -28,6 +24,14 @@ class MarketData:
     cme_nikkei_close: float
     cme_nikkei_change: float
     cme_nikkei_change_pct: float
+
+    vix_close: float
+    vix_change: float
+    vix_change_pct: float
+
+    us10y_rate: float
+    us10y_change: float
+    us10y_change_pct: float
 
 
 def _fetch_ticker(symbol: str) -> tuple[float, float, float]:
@@ -46,9 +50,10 @@ def fetch_market_data() -> MarketData:
     nikkei = _fetch_ticker("^N225")
     sp500 = _fetch_ticker("^GSPC")
     nasdaq = _fetch_ticker("^IXIC")
-    dow = _fetch_ticker("^DJI")
     usdjpy = _fetch_ticker("USDJPY=X")
     cme = _fetch_ticker("NKD=F")
+    vix = _fetch_ticker("^VIX")
+    us10y = _fetch_ticker("^TNX")
 
     return MarketData(
         nikkei_close=nikkei[0],
@@ -60,13 +65,16 @@ def fetch_market_data() -> MarketData:
         nasdaq_close=nasdaq[0],
         nasdaq_change=nasdaq[1],
         nasdaq_change_pct=nasdaq[2],
-        dow_close=dow[0],
-        dow_change=dow[1],
-        dow_change_pct=dow[2],
         usdjpy_rate=usdjpy[0],
         usdjpy_change=usdjpy[1],
         usdjpy_change_pct=usdjpy[2],
         cme_nikkei_close=cme[0],
         cme_nikkei_change=cme[1],
         cme_nikkei_change_pct=cme[2],
+        vix_close=vix[0],
+        vix_change=vix[1],
+        vix_change_pct=vix[2],
+        us10y_rate=us10y[0],
+        us10y_change=us10y[1],
+        us10y_change_pct=us10y[2],
     )

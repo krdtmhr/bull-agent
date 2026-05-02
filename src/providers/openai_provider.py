@@ -82,15 +82,26 @@ class OpenAIProvider(AIProvider):
 
 最後に必ず：「※最終的な判断はご自身でお願いします！」"""
 
+        vix = market_data['vix_close']
+        if vix >= 30:
+            vix_label = "🚨 危険水準"
+        elif vix >= 25:
+            vix_label = "⚠️ 警戒水準"
+        elif vix >= 20:
+            vix_label = "😟 やや不安"
+        else:
+            vix_label = "😌 落ち着いている"
+
         user_prompt = f"""今日の市場データとニュースをチェックして！
 
 【昨夜の市場データ】
 - 日経225（日本の主要225社の株価の平均）: {market_data['nikkei_close']:.0f}円 (前日比: {market_data['nikkei_change']:+.0f}円)
 - S&P500（アメリカの主要500社の株価指数）: {market_data['sp500_close']:.2f} (前日比: {market_data['sp500_change']:+.2f})
 - NASDAQ（アメリカのIT企業中心の株価指数）: {market_data['nasdaq_close']:.2f} (前日比: {market_data['nasdaq_change']:+.2f})
-- ダウ平均（アメリカの主要30社の株価指数）: {market_data['dow_close']:.2f} (前日比: {market_data['dow_change']:+.2f})
 - ドル円: {market_data['usdjpy_rate']:.2f}円 (前日比: {market_data['usdjpy_change']:+.2f})
 - シカゴ先物（アメリカ市場で予測された明日の日本株価）: {market_data['cme_nikkei_close']:.0f} (前日比: {market_data['cme_nikkei_change']:+.0f})
+- VIX（市場の恐怖指数・数字が大きいほど市場が不安定）: {vix:.2f} {vix_label} (前日比: {market_data['vix_change']:+.2f})
+- 米国10年債利回り（金利が上がると株が売られやすい）: {market_data['us10y_rate']:.2f}% (前日比: {market_data['us10y_change']:+.2f}%)
 
 【ニュース】
 {news_context}

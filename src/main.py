@@ -36,7 +36,7 @@ def main():
 
     print("市場データ取得中...")
     data = fetch_market_data()
-    print(f"日経: {data.nikkei_close:.0f} ({data.nikkei_change:+.0f}) / S&P500: {data.sp500_close:.2f} ({data.sp500_change:+.2f}) / CME先物: {data.cme_nikkei_close:.0f} ({data.cme_nikkei_change:+.0f})")
+    print(f"日経: {data.nikkei_close:.0f} ({data.nikkei_change:+.0f}) / S&P500: {data.sp500_close:.2f} ({data.sp500_change:+.2f}) / CME先物: {data.cme_nikkei_close:.0f} ({data.cme_nikkei_change:+.0f}) / VIX: {data.vix_close:.2f} / 米10年債: {data.us10y_rate:.2f}%")
 
     rule_signal = generate_rule_signal(data)
     print(f"ルールシグナル: {rule_signal.action} ¥{rule_signal.amount:,} (確信度: {rule_signal.confidence * 100:.0f}%)")
@@ -59,15 +59,18 @@ def main():
         "nasdaq_close": data.nasdaq_close,
         "nasdaq_change": data.nasdaq_change,
         "nasdaq_change_pct": data.nasdaq_change_pct,
-        "dow_close": data.dow_close,
-        "dow_change": data.dow_change,
-        "dow_change_pct": data.dow_change_pct,
         "usdjpy_rate": data.usdjpy_rate,
         "usdjpy_change": data.usdjpy_change,
         "usdjpy_change_pct": data.usdjpy_change_pct,
         "cme_nikkei_close": data.cme_nikkei_close,
         "cme_nikkei_change": data.cme_nikkei_change,
         "cme_nikkei_change_pct": data.cme_nikkei_change_pct,
+        "vix_close": data.vix_close,
+        "vix_change": data.vix_change,
+        "vix_change_pct": data.vix_change_pct,
+        "us10y_rate": data.us10y_rate,
+        "us10y_change": data.us10y_change,
+        "us10y_change_pct": data.us10y_change_pct,
     }
     stance_label = {"BUY": "強気寄り", "SELL": "慎重寄り", "HOLD": "様子見"}
     market_dict["stance"] = rule_signal.action
