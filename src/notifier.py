@@ -34,10 +34,12 @@ class EmailNotifier:
         news_items: "list[NewsItem] | None" = None,
     ):
         today = datetime.now().strftime("%Y-%m-%d")
-        action_label = rule_signal.action
-        amount_str = f"¥{rule_signal.amount:,}" if rule_signal.action != "HOLD" else "-"
-
-        subject = f"【投資シグナル】{action_label} {amount_str} - 日経4.3ブル ({today})"
+        subject_map = {
+            "BUY": f"【買いサイン📈】今日は楽天4.3ブルを ¥{rule_signal.amount:,} 購入しましょう ({today})",
+            "SELL": f"【売りサイン📉】今日は楽天4.3ブルを ¥{rule_signal.amount:,} 売却しましょう ({today})",
+            "HOLD": f"【様子見⏸️】今日は楽天4.3ブルの売買はお休みです ({today})",
+        }
+        subject = subject_map[rule_signal.action]
 
         body = self._build_body(rule_signal, ai_analysis, market_data, portfolio, today, news_items or [])
 
@@ -91,6 +93,8 @@ class EmailNotifier:
             for i, item in enumerate(news_items[:5], 1):
                 sentiment_tag = f"[{item.sentiment}] " if item.sentiment != "不明" else ""
                 news_lines.append(f"{i}. {sentiment_tag}{item.source}: {item.title}")
+                if item.url:
+                    news_lines.append(f"   🔗 {item.url}")
             news_section = "\n".join(news_lines) + "\n\n" + "=" * 50 + "\n"
 
         return f"""日経4.3倍ブル 自動分析レポート - {today}
