@@ -1,5 +1,3 @@
 yfinance
 openai
 python-dotenv
-flask
-gunicorn
