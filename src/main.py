@@ -1,3 +1,4 @@
+import json
 import sys
 import traceback
 from datetime import datetime
@@ -18,17 +19,11 @@ def get_ai_provider():
 
 
 def combine_confidence(rule_signal, ai_analysis: str) -> float:
-    ai_lower = ai_analysis.lower()
-    rule_action = rule_signal.action.lower()
-
-    ai_agrees = rule_action in ai_lower or (
-        rule_action == "buy" and "買" in ai_analysis
-    ) or (
-        rule_action == "sell" and "売" in ai_analysis
-    ) or (
-        rule_action == "hold" and ("様子見" in ai_analysis or "ホールド" in ai_analysis)
+    ai_agrees = (
+        (rule_signal.action == "BUY" and ("強気" in ai_analysis or "買" in ai_analysis))
+        or (rule_signal.action == "SELL" and ("慎重" in ai_analysis or "売" in ai_analysis))
+        or (rule_signal.action == "HOLD" and ("様子見" in ai_analysis or "ホールド" in ai_analysis))
     )
-
     if ai_agrees:
         return min(0.95, rule_signal.confidence + 0.1)
     return max(0.1, rule_signal.confidence - 0.1)
@@ -75,9 +70,17 @@ def main():
         "cme_nikkei_change": data.cme_nikkei_change,
         "cme_nikkei_change_pct": data.cme_nikkei_change_pct,
     }
-    ai_analysis = ai_provider.analyze(market_dict, news_context)
+    raw_ai = ai_provider.analyze(market_dict, news_context)
 
-    combined_confidence = combine_confidence(rule_signal, ai_analysis)
+    try:
+        ai_result = json.loads(raw_ai)
+        full_analysis = ai_result.get("full_analysis", raw_ai)
+        twitter_text = ai_result.get("twitter_text", "")
+    except (ValueError, AttributeError):
+        full_analysis = raw_ai
+        twitter_text = ""
+
+    combined_confidence = combine_confidence(rule_signal, full_analysis)
     print(f"総合確信度: {combined_confidence * 100:.0f}%")
 
     portfolio.last_signal_action = rule_signal.action
@@ -88,12 +91,21 @@ def main():
 
     print("メール送信中...")
     notifier = EmailNotifier()
-    notifier.send_signal_email(rule_signal, ai_analysis, data, portfolio, news_items[:5])
+    notifier.send_signal_email(rule_signal, full_analysis, data, portfolio, news_items[:5])
     print("メール送信完了")
 
     print("LINE通知送信中...")
     notifier.send_line(rule_signal, data, news_items[:3])
     print("LINE通知送信完了")
+
+    if twitter_text and config.TWITTER_API_KEY:
+        print("Twitter投稿中...")
+        try:
+            from src.twitter_poster import post_morning_analysis
+            tweet_url = post_morning_analysis(twitter_text)
+            print(f"Twitter投稿完了: {tweet_url}")
+        except Exception as e:
+            print(f"Twitter投稿失敗（メール/LINEは送信済み）: {e}")
 
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 分析完了")
 

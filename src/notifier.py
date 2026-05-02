@@ -35,9 +35,9 @@ class EmailNotifier:
     ):
         today = datetime.now().strftime("%Y-%m-%d")
         subject_map = {
-            "BUY": f"【📈 強気寄り】ブルみんの朝レポート ({today})",
-            "SELL": f"【📉 慎重寄り】ブルみんの朝レポート ({today})",
-            "HOLD": f"【⏸️ 様子見】ブルみんの朝レポート ({today})",
+            "BUY": f"【📈 強気寄り】ブルみん×ベアドン 朝ナビ ({today})",
+            "SELL": f"【📉 慎重寄り】ブルみん×ベアドン 朝ナビ ({today})",
+            "HOLD": f"【⏸️ 様子見】ブルみん×ベアドン 朝ナビ ({today})",
         }
         subject = subject_map[rule_signal.action]
 
@@ -97,7 +97,7 @@ class EmailNotifier:
                     news_lines.append(f"   🔗 {item.url}")
             news_section = "\n".join(news_lines) + "\n\n" + "=" * 50 + "\n"
 
-        return f"""🐂 ブルみんの朝レポート - {today}
+        return f"""🐂×🧊 ブルみん×ベアドン 朝ナビ - {today}
 {"=" * 50}
 おはよう！今日もチェックしてくれてありがとう。
 夢は推せ。でも、ちゃんと考えて推せ。
@@ -147,7 +147,7 @@ class EmailNotifier:
         if news_items is None:
             news_items = []
         today = datetime.now().strftime("%Y-%m-%d")
-        stance_map = {"BUY": "📈 強気寄り", "SELL": "📉 慎当寄り", "HOLD": "⏸️ 様子見"}
+        stance_map = {"BUY": "📈 強気寄り", "SELL": "📉 慎重寄り", "HOLD": "⏸️ 様子見"}
         stance = stance_map.get(rule_signal.action, "⏸️ 様子見")
         news_lines = ""
         if news_items:
@@ -156,9 +156,9 @@ class EmailNotifier:
                 headlines.append(f"{i}. {item.title}")
             news_lines = "\n\n📰 気になるニュース\n" + "\n".join(headlines)
         text = (
-            f"おはよう！ブルみんだよ🐂\n"
+            f"おはよう！ブルみん×ベアドンだよ🐂🧊\n"
             f"今日もチェックしてくれてありがとう！\n\n"
-            f"【{today} の朝レポート】\n"
+            f"【{today} の朝ナビ】\n"
             f"今日のスタンス：{stance}\n\n"
             f"📊 マーケット速報\n"
             f"日経225: {market_data.nikkei_close:.0f}円 ({market_data.nikkei_change:+.0f})\n"
@@ -167,7 +167,8 @@ class EmailNotifier:
             f"ドル円: {market_data.usdjpy_rate:.2f}円"
             f"{news_lines}\n\n"
             f"詳しい分析はメールをチェックしてね！\n"
-            f"夢は推せ。でも、ちゃんと考えて推せ。🌟"
+            f"夢は推せ。でも、ちゃんと考えて推せ。🌟\n"
+            f"Twitterでもブルみんのリアル投資を配信中！"
         )
         data = json.dumps({"to": config.LINE_USER_ID, "messages": [{"type": "text", "text": text}]}).encode("utf-8")
         req = urllib.request.Request(
