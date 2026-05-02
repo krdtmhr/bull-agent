@@ -1,5 +1,8 @@
 import smtplib
 import ssl
+import urllib.request
+import urllib.parse
+import json
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
@@ -100,6 +103,30 @@ class EmailNotifier:
 {"=" * 50}
 ※ このメールは自動生成です。最終的な売買判断はご自身の責任で行ってください。
 """
+
+    def send_line(self, rule_signal: RuleSignal, market_data: MarketData):
+        if not config.LINE_CHANNEL_ACCESS_TOKEN or not config.LINE_USER_ID:
+            return
+        today = datetime.now().strftime("%Y-%m-%d")
+        action_emoji = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(rule_signal.action, "")
+        amount_str = f"¥{rule_signal.amount:,}" if rule_signal.action != "HOLD" else "-"
+        text = (
+            f"{action_emoji}【投資シグナル】{rule_signal.action} {amount_str}\n"
+            f"日付: {today}\n"
+            f"確信度: {rule_signal.confidence * 100:.0f}%\n\n"
+            f"日経225: {market_data.nikkei_close:.0f} ({market_data.nikkei_change:+.0f})\n"
+            f"S&P500: {market_data.sp500_close:.2f} ({market_data.sp500_change:+.2f})\n"
+            f"CME先物: {market_data.cme_nikkei_close:.0f} ({market_data.cme_nikkei_change:+.0f})\n"
+            f"USD/JPY: {market_data.usdjpy_rate:.2f}\n\n"
+            f"根拠: {rule_signal.reason}"
+        )
+        data = json.dumps({"to": config.LINE_USER_ID, "messages": [{"type": "text", "text": text}]}).encode("utf-8")
+        req = urllib.request.Request(
+            "https://api.line.me/v2/bot/message/push",
+            data=data,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {config.LINE_CHANNEL_ACCESS_TOKEN}"},
+        )
+        urllib.request.urlopen(req)
 
     def send_error_email(self, error: Exception):
         today = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

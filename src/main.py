@@ -78,6 +78,10 @@ def main():
     notifier.send_signal_email(rule_signal, ai_analysis, data, portfolio)
     print("メール送信完了")
 
+    print("LINE通知送信中...")
+    notifier.send_line(rule_signal, data)
+    print("LINE通知送信完了")
+
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 分析完了")
 
 
