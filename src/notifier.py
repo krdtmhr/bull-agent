@@ -35,9 +35,9 @@ class EmailNotifier:
     ):
         today = datetime.now().strftime("%Y-%m-%d")
         subject_map = {
-            "BUY": f"【買いサイン📈】今日は楽天4.3ブルを ¥{rule_signal.amount:,} 購入しましょう ({today})",
-            "SELL": f"【売りサイン📉】今日は楽天4.3ブルを ¥{rule_signal.amount:,} 売却しましょう ({today})",
-            "HOLD": f"【様子見⏸️】今日は楽天4.3ブルの売買はお休みです ({today})",
+            "BUY": f"【📈 強気寄り】ブルみんの朝レポート ({today})",
+            "SELL": f"【📉 慎重寄り】ブルみんの朝レポート ({today})",
+            "HOLD": f"【⏸️ 様子見】ブルみんの朝レポート ({today})",
         }
         subject = subject_map[rule_signal.action]
 
@@ -67,19 +67,19 @@ class EmailNotifier:
             news_items = []
 
         action_headers = {
-            "BUY": f"📈 買いサイン！ ¥{rule_signal.amount:,}分 購入を検討してください",
-            "SELL": f"📉 売りサイン！ ¥{rule_signal.amount:,}分 売却を検討してください",
-            "HOLD": "⏸️ 今日は様子見 売買はお休みです",
+            "BUY": "📈 今日のスタンス：強気寄り",
+            "SELL": "📉 今日のスタンス：慎重寄り",
+            "HOLD": "⏸️ 今日のスタンス：様子見",
         }
         action_explanations = {
-            "BUY": "市場が下がっており、安く買えるチャンスです。",
-            "SELL": "市場が上がっており、利益を確定するチャンスです。",
-            "HOLD": "市場の方向性が読みにくい状態です。無理に動かず待ちましょう。",
+            "BUY": "市場に上昇の方向感が見られます。ただし、相場は必ず上下します。",
+            "SELL": "市場に慎重な方向感が見られます。無理に動く必要はありません。",
+            "HOLD": "方向感が読みにくい状態です。「何もしない」も立派な判断ですよ。",
         }
         action_instructions = {
-            "BUY": f"楽天証券にログイン → 日経平均ブル4.3倍ETF を検索 → 金額指定で ¥{rule_signal.amount:,} を購入",
-            "SELL": f"楽天証券にログイン → 日経平均ブル4.3倍ETF を検索 → 金額指定で ¥{rule_signal.amount:,} を売却",
-            "HOLD": "本日は売買なし。市場の動向を引き続き監視してください。",
+            "BUY": f"楽天証券にログイン → 楽天日本株式4.3倍ブル を検索\n参考金額: ¥{rule_signal.amount:,}（最終判断はご自身で）",
+            "SELL": f"楽天証券にログイン → 楽天日本株式4.3倍ブル を検索\n参考金額: ¥{rule_signal.amount:,}（最終判断はご自身で）",
+            "HOLD": "今日は相場の様子をながめるだけでもOKです。",
         }
 
         pct = rule_signal.confidence * 100
@@ -97,8 +97,10 @@ class EmailNotifier:
                     news_lines.append(f"   🔗 {item.url}")
             news_section = "\n".join(news_lines) + "\n\n" + "=" * 50 + "\n"
 
-        return f"""日経4.3倍ブル 自動分析レポート - {today}
+        return f"""🐂 ブルみんの朝レポート - {today}
 {"=" * 50}
+おはよう！今日もチェックしてくれてありがとう。
+夢は推せ。でも、ちゃんと考えて推せ。
 
 {action_headers[rule_signal.action]}
 {action_explanations[rule_signal.action]}
@@ -145,24 +147,27 @@ class EmailNotifier:
         if news_items is None:
             news_items = []
         today = datetime.now().strftime("%Y-%m-%d")
-        action_emoji = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(rule_signal.action, "")
-        amount_str = f"¥{rule_signal.amount:,}" if rule_signal.action != "HOLD" else "-"
+        stance_map = {"BUY": "📈 強気寄り", "SELL": "📉 慎当寄り", "HOLD": "⏸️ 様子見"}
+        stance = stance_map.get(rule_signal.action, "⏸️ 様子見")
         news_lines = ""
         if news_items:
             headlines = []
             for i, item in enumerate(news_items[:3], 1):
-                headlines.append(f"{i}. {item.source}: {item.title}")
-            news_lines = "\n\n【最新ニュース】\n" + "\n".join(headlines)
+                headlines.append(f"{i}. {item.title}")
+            news_lines = "\n\n📰 気になるニュース\n" + "\n".join(headlines)
         text = (
-            f"{action_emoji}【投資シグナル】{rule_signal.action} {amount_str}\n"
-            f"日付: {today}\n"
-            f"確信度: {rule_signal.confidence * 100:.0f}%\n\n"
-            f"日経225: {market_data.nikkei_close:.0f} ({market_data.nikkei_change:+.0f})\n"
+            f"おはよう！ブルみんだよ🐂\n"
+            f"今日もチェックしてくれてありがとう！\n\n"
+            f"【{today} の朝レポート】\n"
+            f"今日のスタンス：{stance}\n\n"
+            f"📊 マーケット速報\n"
+            f"日経225: {market_data.nikkei_close:.0f}円 ({market_data.nikkei_change:+.0f})\n"
             f"S&P500: {market_data.sp500_close:.2f} ({market_data.sp500_change:+.2f})\n"
-            f"CME先物: {market_data.cme_nikkei_close:.0f} ({market_data.cme_nikkei_change:+.0f})\n"
-            f"USD/JPY: {market_data.usdjpy_rate:.2f}\n\n"
-            f"根拠: {rule_signal.reason}"
-            f"{news_lines}"
+            f"シカゴ先物: {market_data.cme_nikkei_close:.0f} ({market_data.cme_nikkei_change:+.0f})\n"
+            f"ドル円: {market_data.usdjpy_rate:.2f}円"
+            f"{news_lines}\n\n"
+            f"詳しい分析はメールをチェックしてね！\n"
+            f"夢は推せ。でも、ちゃんと考えて推せ。🌟"
         )
         data = json.dumps({"to": config.LINE_USER_ID, "messages": [{"type": "text", "text": text}]}).encode("utf-8")
         req = urllib.request.Request(
