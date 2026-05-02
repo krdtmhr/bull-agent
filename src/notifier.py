@@ -6,11 +6,15 @@ import json
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 import config
 from src.signal_engine import RuleSignal
 from src.market_data import MarketData
 from src.portfolio import Portfolio
+
+if TYPE_CHECKING:
+    from src.news_collector import NewsItem
 
 
 class EmailNotifier:
@@ -27,6 +31,7 @@ class EmailNotifier:
         ai_analysis: str,
         market_data: MarketData,
         portfolio: Portfolio,
+        news_items: "list[NewsItem] | None" = None,
     ):
         today = datetime.now().strftime("%Y-%m-%d")
         action_label = rule_signal.action
@@ -34,7 +39,7 @@ class EmailNotifier:
 
         subject = f"【投資シグナル】{action_label} {amount_str} - 日経4.3ブル ({today})"
 
-        body = self._build_body(rule_signal, ai_analysis, market_data, portfolio, today)
+        body = self._build_body(rule_signal, ai_analysis, market_data, portfolio, today, news_items or [])
 
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
@@ -54,36 +59,62 @@ class EmailNotifier:
         data: MarketData,
         portfolio: Portfolio,
         today: str,
+        news_items: "list[NewsItem]" = None,
     ) -> str:
+        if news_items is None:
+            news_items = []
+
+        action_headers = {
+            "BUY": f"📈 買いサイン！ ¥{rule_signal.amount:,}分 購入を検討してください",
+            "SELL": f"📉 売りサイン！ ¥{rule_signal.amount:,}分 売却を検討してください",
+            "HOLD": "⏸️ 今日は様子見 売買はお休みです",
+        }
+        action_explanations = {
+            "BUY": "市場が下がっており、安く買えるチャンスです。",
+            "SELL": "市場が上がっており、利益を確定するチャンスです。",
+            "HOLD": "市場の方向性が読みにくい状態です。無理に動かず待ちましょう。",
+        }
         action_instructions = {
             "BUY": f"楽天証券にログイン → 日経平均ブル4.3倍ETF を検索 → 金額指定で ¥{rule_signal.amount:,} を購入",
             "SELL": f"楽天証券にログイン → 日経平均ブル4.3倍ETF を検索 → 金額指定で ¥{rule_signal.amount:,} を売却",
             "HOLD": "本日は売買なし。市場の動向を引き続き監視してください。",
         }
 
+        pct = rule_signal.confidence * 100
+        filled = round(pct / 20)
+        confidence_bar = "●" * filled + "○" * (5 - filled)
+        confidence_display = f"AIの確信度: {confidence_bar} {pct:.0f}%"
+
+        news_section = ""
+        if news_items:
+            news_lines = ["【最新ニュース（トップ5）】"]
+            for i, item in enumerate(news_items[:5], 1):
+                sentiment_tag = f"[{item.sentiment}] " if item.sentiment != "不明" else ""
+                news_lines.append(f"{i}. {sentiment_tag}{item.source}: {item.title}")
+            news_section = "\n".join(news_lines) + "\n\n" + "=" * 50 + "\n"
+
         return f"""日経4.3倍ブル 自動分析レポート - {today}
 {"=" * 50}
 
+{action_headers[rule_signal.action]}
+{action_explanations[rule_signal.action]}
+{confidence_display}
+根拠: {rule_signal.reason}
+
+{"=" * 50}
 【市場データサマリー】
 ┌─────────────────────────────────────────┐
-│ 指標           │ 現値        │ 前日比      │
+│ 指標                   │ 現値        │ 前日比      │
 ├─────────────────────────────────────────┤
-│ 日経225        │ {data.nikkei_close:>10.0f} │ {data.nikkei_change:>+8.0f} ({data.nikkei_change_pct:>+5.2f}%) │
-│ S&P500         │ {data.sp500_close:>10.2f} │ {data.sp500_change:>+8.2f} ({data.sp500_change_pct:>+5.2f}%) │
-│ NASDAQ         │ {data.nasdaq_close:>10.2f} │ {data.nasdaq_change:>+8.2f} ({data.nasdaq_change_pct:>+5.2f}%) │
-│ USD/JPY        │ {data.usdjpy_rate:>10.2f} │ {data.usdjpy_change:>+8.2f} ({data.usdjpy_change_pct:>+5.2f}%) │
-│ CME日経先物    │ {data.cme_nikkei_close:>10.0f} │ {data.cme_nikkei_change:>+8.0f} ({data.cme_nikkei_change_pct:>+5.2f}%) │
+│ 日経225                │ {data.nikkei_close:>10.0f} │ {data.nikkei_change:>+8.0f} ({data.nikkei_change_pct:>+5.2f}%) │
+│ S&P500                 │ {data.sp500_close:>10.2f} │ {data.sp500_change:>+8.2f} ({data.sp500_change_pct:>+5.2f}%) │
+│ NASDAQ                 │ {data.nasdaq_close:>10.2f} │ {data.nasdaq_change:>+8.2f} ({data.nasdaq_change_pct:>+5.2f}%) │
+│ USD/JPY                │ {data.usdjpy_rate:>10.2f} │ {data.usdjpy_change:>+8.2f} ({data.usdjpy_change_pct:>+5.2f}%) │
+│ シカゴ先物（アメリカでの日経予測値） │ {data.cme_nikkei_close:>10.0f} │ {data.cme_nikkei_change:>+8.0f} ({data.cme_nikkei_change_pct:>+5.2f}%) │
 └─────────────────────────────────────────┘
 
 {"=" * 50}
-【ルールベースシグナル】
-アクション: {rule_signal.action}
-金額:       {f"¥{rule_signal.amount:,}" if rule_signal.action != "HOLD" else "-"}
-確信度:     {rule_signal.confidence * 100:.0f}%
-根拠:       {rule_signal.reason}
-
-{"=" * 50}
-【AI分析】
+{news_section}【AI分析】
 {ai_analysis}
 
 {"=" * 50}
@@ -91,25 +122,33 @@ class EmailNotifier:
 {action_instructions[rule_signal.action]}
 
 {"=" * 50}
-【ポートフォリオ状況】
-総資本:         ¥{portfolio.total_capital:,}
-利用可能資金:   ¥{portfolio.available_capital:,}
-保有ポジション: ¥{portfolio.current_position_value:,}
-使用枠:         {portfolio.parts_used()}/10
-残枠:           {portfolio.parts_available()}/10
-累計取引回数:   {portfolio.trade_count}回
-最終更新:       {portfolio.last_updated}
+【あなたの資金状況】
+総資本:             ¥{portfolio.total_capital:,}
+使える資金:         ¥{portfolio.available_capital:,}
+現在持っている金額: ¥{portfolio.current_position_value:,}
+投資中の枠:         {portfolio.parts_used()}/10
+残枠:               {portfolio.parts_available()}/10
+累計取引回数:       {portfolio.trade_count}回
+最終更新:           {portfolio.last_updated}
 
 {"=" * 50}
-※ このメールは自動生成です。最終的な売買判断はご自身の責任で行ってください。
+※ 投資は自己責任です。このメールはあくまで参考情報です。
 """
 
-    def send_line(self, rule_signal: RuleSignal, market_data: MarketData):
+    def send_line(self, rule_signal: RuleSignal, market_data: MarketData, news_items: "list[NewsItem] | None" = None):
         if not config.LINE_CHANNEL_ACCESS_TOKEN or not config.LINE_USER_ID:
             return
+        if news_items is None:
+            news_items = []
         today = datetime.now().strftime("%Y-%m-%d")
         action_emoji = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(rule_signal.action, "")
         amount_str = f"¥{rule_signal.amount:,}" if rule_signal.action != "HOLD" else "-"
+        news_lines = ""
+        if news_items:
+            headlines = []
+            for i, item in enumerate(news_items[:3], 1):
+                headlines.append(f"{i}. {item.source}: {item.title}")
+            news_lines = "\n\n【最新ニュース】\n" + "\n".join(headlines)
         text = (
             f"{action_emoji}【投資シグナル】{rule_signal.action} {amount_str}\n"
             f"日付: {today}\n"
@@ -119,6 +158,7 @@ class EmailNotifier:
             f"CME先物: {market_data.cme_nikkei_close:.0f} ({market_data.cme_nikkei_change:+.0f})\n"
             f"USD/JPY: {market_data.usdjpy_rate:.2f}\n\n"
             f"根拠: {rule_signal.reason}"
+            f"{news_lines}"
         )
         data = json.dumps({"to": config.LINE_USER_ID, "messages": [{"type": "text", "text": text}]}).encode("utf-8")
         req = urllib.request.Request(

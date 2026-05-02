@@ -6,6 +6,7 @@ from src.market_data import fetch_market_data
 from src.signal_engine import generate_rule_signal
 from src.portfolio import Portfolio
 from src.notifier import EmailNotifier
+from src.news_collector import fetch_news, format_news_for_ai
 import config
 
 
@@ -46,6 +47,11 @@ def main():
     rule_signal = generate_rule_signal(data)
     print(f"ルールシグナル: {rule_signal.action} ¥{rule_signal.amount:,} (確信度: {rule_signal.confidence * 100:.0f}%)")
 
+    print("ニュース収集中...")
+    news_items = fetch_news()
+    news_context = format_news_for_ai(news_items)
+    print(f"ニュース取得完了: {len(news_items)}件")
+
     print("AI分析実行中...")
     ai_provider = get_ai_provider()
     market_dict = {
@@ -68,18 +74,18 @@ def main():
         "cme_nikkei_change": data.cme_nikkei_change,
         "cme_nikkei_change_pct": data.cme_nikkei_change_pct,
     }
-    ai_analysis = ai_provider.analyze(market_dict)
+    ai_analysis = ai_provider.analyze(market_dict, news_context)
 
     combined_confidence = combine_confidence(rule_signal, ai_analysis)
     print(f"総合確信度: {combined_confidence * 100:.0f}%")
 
     print("メール送信中...")
     notifier = EmailNotifier()
-    notifier.send_signal_email(rule_signal, ai_analysis, data, portfolio)
+    notifier.send_signal_email(rule_signal, ai_analysis, data, portfolio, news_items[:5])
     print("メール送信完了")
 
     print("LINE通知送信中...")
-    notifier.send_line(rule_signal, data)
+    notifier.send_line(rule_signal, data, news_items[:3])
     print("LINE通知送信完了")
 
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 分析完了")
