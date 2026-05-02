@@ -13,6 +13,10 @@ class Portfolio:
         self.current_position_value: int = 0
         self.trade_count: int = 0
         self.last_updated: str = datetime.now().isoformat()
+        self.last_signal_action: str = "HOLD"
+        self.last_signal_reason: str = ""
+        self.last_signal_date: str = ""
+        self.last_signal_confidence: float = 0.5
 
     def load(self) -> "Portfolio":
         if not os.path.exists(STATE_FILE):
@@ -25,6 +29,10 @@ class Portfolio:
         self.current_position_value = data.get("current_position_value", 0)
         self.trade_count = data.get("trade_count", 0)
         self.last_updated = data.get("last_updated", datetime.now().isoformat())
+        self.last_signal_action = data.get("last_signal_action", "HOLD")
+        self.last_signal_reason = data.get("last_signal_reason", "")
+        self.last_signal_date = data.get("last_signal_date", "")
+        self.last_signal_confidence = data.get("last_signal_confidence", 0.5)
         return self
 
     def save(self):
@@ -35,6 +43,10 @@ class Portfolio:
             "current_position_value": self.current_position_value,
             "trade_count": self.trade_count,
             "last_updated": self.last_updated,
+            "last_signal_action": self.last_signal_action,
+            "last_signal_reason": self.last_signal_reason,
+            "last_signal_date": self.last_signal_date,
+            "last_signal_confidence": self.last_signal_confidence,
         }
         with open(STATE_FILE, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)

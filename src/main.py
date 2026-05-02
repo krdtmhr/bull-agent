@@ -80,6 +80,12 @@ def main():
     combined_confidence = combine_confidence(rule_signal, ai_analysis)
     print(f"総合確信度: {combined_confidence * 100:.0f}%")
 
+    portfolio.last_signal_action = rule_signal.action
+    portfolio.last_signal_reason = rule_signal.reason
+    portfolio.last_signal_date = datetime.now().strftime("%Y-%m-%d")
+    portfolio.last_signal_confidence = combined_confidence
+    portfolio.save()
+
     print("メール送信中...")
     notifier = EmailNotifier()
     notifier.send_signal_email(rule_signal, ai_analysis, data, portfolio, news_items[:5])
