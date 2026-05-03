@@ -49,7 +49,6 @@ def main():
 
     # ② ポートフォリオ更新
     portfolio = Portfolio().load()
-    signal_action = portfolio.last_signal_action or "HOLD"
     lot = portfolio.lot_size()
 
     if action == "BUY":
@@ -72,11 +71,11 @@ def main():
     # ④ コンテンツ配信
     notifier = EmailNotifier()
     print("報告メール送信中...")
-    notifier.send_report_email(signal_action, action, trade_summary, shot, data, portfolio)
+    notifier.send_report_email(action, trade_summary, shot, data, portfolio)
     print("報告メール送信完了")
 
     print("LINE通知送信中...")
-    notifier.send_report_line(signal_action, action, trade_summary, data, portfolio)
+    notifier.send_report_line(action, trade_summary, data, portfolio)
     print("LINE通知送信完了")
 
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 完了")
