@@ -531,6 +531,7 @@ class EmailNotifier:
         trade_summary: str,
         market_data: MarketData,
         portfolio: Portfolio,
+        screenshot_path: "str | None" = None,
     ):
         if not config.LINE_CHANNEL_ACCESS_TOKEN or not config.LINE_USER_ID:
             return
@@ -553,13 +554,73 @@ class EmailNotifier:
             f"詳細と約定スクショはメールをチェックしてね！\n"
             f"夢は推せ。でも、ちゃんと考えて推せ。🌟"
         )
-        data = json.dumps({"to": config.LINE_USER_ID, "messages": [{"type": "text", "text": text}]}).encode("utf-8")
+
+        messages = [{"type": "text", "text": text}]
+
+        # スクショがあればLINEにも画像送信
+        if screenshot_path and os.path.exists(screenshot_path):
+            img_url = self._upload_screenshot_to_github(screenshot_path)
+            if img_url:
+                messages.append({
+                    "type": "image",
+                    "originalContentUrl": img_url,
+                    "previewImageUrl": img_url,
+                })
+
+        data = json.dumps({"to": config.LINE_USER_ID, "messages": messages}).encode("utf-8")
         req = urllib.request.Request(
             "https://api.line.me/v2/bot/message/push",
             data=data,
             headers={"Content-Type": "application/json", "Authorization": f"Bearer {config.LINE_CHANNEL_ACCESS_TOKEN}"},
         )
         urllib.request.urlopen(req)
+
+    def _upload_screenshot_to_github(self, screenshot_path: str) -> "str | None":
+        """スクショをGitHubリポジトリにpushして公開URLを返す。"""
+        try:
+            import base64
+            token = os.environ.get("GITHUB_TOKEN", "")
+            repo = "krdtmhr/bull-agent"
+            filename = os.path.basename(screenshot_path)
+            api_url = f"https://api.github.com/repos/{repo}/contents/screenshots/{filename}"
+
+            with open(screenshot_path, "rb") as f:
+                content = base64.b64encode(f.read()).decode()
+
+            # 既存ファイルのSHAを取得（上書き用）
+            sha = None
+            try:
+                check = urllib.request.Request(
+                    api_url,
+                    headers={"Authorization": f"Bearer {token}", "Accept": "application/vnd.github+json"},
+                )
+                res = urllib.request.urlopen(check)
+                sha = json.loads(res.read())["sha"]
+            except Exception:
+                pass
+
+            body = {"message": f"スクショ追加: {filename}", "content": content}
+            if sha:
+                body["sha"] = sha
+
+            put_req = urllib.request.Request(
+                api_url,
+                data=json.dumps(body).encode(),
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Accept": "application/vnd.github+json",
+                    "Content-Type": "application/json",
+                },
+                method="PUT",
+            )
+            urllib.request.urlopen(put_req)
+
+            ext = os.path.splitext(filename)[1].lower()
+            # GitHub raw URLはLINEがHTTPSで取得できる形式
+            return f"https://raw.githubusercontent.com/{repo}/master/screenshots/{filename}"
+        except Exception as e:
+            print(f"スクショアップロード失敗: {e}")
+            return None
 
     def send_error_email(self, error: Exception):
         today = datetime.now().strftime("%Y-%m-%d %H:%M:%S")

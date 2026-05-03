@@ -1,5 +1,4 @@
 .env
-portfolio_state.json
 .claude/
 *.txt
 __pycache__/

@@ -75,7 +75,7 @@ def main():
     print("報告メール送信完了")
 
     print("LINE通知送信中...")
-    notifier.send_report_line(action, trade_summary, data, portfolio)
+    notifier.send_report_line(action, trade_summary, data, portfolio, shot)
     print("LINE通知送信完了")
 
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 完了")

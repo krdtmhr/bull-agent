@@ -1,0 +1,13 @@
+{
+  "total_capital": 100000,
+  "available_capital": 90000,
+  "current_position_value": 10000,
+  "total_deposited": 100000,
+  "trade_count": 1,
+  "last_updated": "2026-05-03T21:54:00.000000",
+  "last_signal_action": "HOLD",
+  "last_signal_reason": "",
+  "last_signal_date": "2026-05-03",
+  "last_signal_confidence": 0.5,
+  "last_sell_parts": 0
+}
