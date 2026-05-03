@@ -430,11 +430,15 @@ class EmailNotifier:
         portfolio: Portfolio,
     ):
         today = datetime.now().strftime("%Y-%m-%d")
-        label, burumin, beardon = self._chara_dialogue(signal_action, action)
-        subject = f"【{label}】ブルみん×ベアドン ({today})"
+        _, burumin, beardon = self._chara_dialogue(signal_action, action)
+        subject_map = {
+            "BUY":  f"📈 今日は強気に買ったよ！ブルみん×ベアドン ({today})",
+            "SELL": f"📉 今日は利確したよ！ブルみん×ベアドン ({today})",
+            "HOLD": f"⏸️ 今日は静かに様子見。ブルみん×ベアドン ({today})",
+        }
+        subject = subject_map.get(action, f"🐂 本日の結果！ブルみん×ベアドン ({today})")
 
         action_icon = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(action, "⏸️")
-        signal_icon = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(signal_action, "⏸️")
 
         # X（Twitter）投稿文
         sns_post = (
@@ -518,8 +522,14 @@ class EmailNotifier:
         today = datetime.now().strftime("%Y-%m-%d")
         action_icon = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(action, "⏸️")
         _, burumin, beardon = self._chara_dialogue(signal_action, action)
+        headline_map = {
+            "BUY":  "📈 今日は強気に買ったよ！",
+            "SELL": "📉 今日は利確したよ！",
+            "HOLD": "⏸️ 今日は静かに様子見。",
+        }
+        headline = headline_map.get(action, "🐂 本日の結果！")
         text = (
-            f"{action_icon} 売買完了！ブルみん×ベアドン\n\n"
+            f"{headline} ブルみん×ベアドン\n\n"
             f"{burumin}\n"
             f"{beardon}\n\n"
             f"【{today} 本日の結果】\n"
