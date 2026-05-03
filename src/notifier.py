@@ -32,6 +32,7 @@ class EmailNotifier:
         market_data: MarketData,
         portfolio: Portfolio,
         news_items: "list[NewsItem] | None" = None,
+        sell_parts: int = 0,
     ):
         today = datetime.now().strftime("%Y-%m-%d")
         subject_map = {
@@ -40,7 +41,7 @@ class EmailNotifier:
             "HOLD": f"【⏸️ 様子見】ブルみん×ベアドン 朝ナビ ({today})",
         }
         subject = subject_map[rule_signal.action]
-        body = self._build_body(rule_signal, ai_analysis, market_data, portfolio, today, news_items or [])
+        body = self._build_body(rule_signal, ai_analysis, market_data, portfolio, today, news_items or [], sell_parts)
 
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
@@ -61,6 +62,7 @@ class EmailNotifier:
         portfolio: Portfolio,
         today: str,
         news_items: "list[NewsItem]" = None,
+        sell_parts: int = 0,
     ) -> str:
         if news_items is None:
             news_items = []
@@ -75,6 +77,32 @@ class EmailNotifier:
             "SELL": "上昇局面での利益確定。\n  今日は解約注文を入れます。",
             "HOLD": "今日は方向感がなし。\n  「動かない」も立派な投資判断です。",
         }
+        # SELL操作の文言を口数に応じて動的生成
+        sell_amount = sell_parts * config.NORMAL_TRADE
+        held_parts = portfolio.parts_used()
+        if sell_parts == 0:
+            sell_instruction = (
+                "⏸️ 保有なし（解約対象なし）\n\n"
+                "  現在4.3倍ブルの保有がありません。"
+            )
+        elif sell_parts >= held_parts:
+            sell_instruction = (
+                f"✅ 今日の操作：全部解約 {sell_parts}口（¥{sell_amount:,}）\n\n"
+                f"  ① 楽天証券にログイン\n"
+                f"  ② 投資信託 →「楽天日本株式4.3倍ブル」を選択\n"
+                f"  ③「解約」→ 全額指定\n"
+                f"  ④ 注文確定"
+            )
+        else:
+            sell_instruction = (
+                f"✅ 今日の操作：一部解約 {sell_parts}口（¥{sell_amount:,}）\n\n"
+                f"  ① 楽天証券にログイン\n"
+                f"  ② 投資信託 →「楽天日本株式4.3倍ブル」を選択\n"
+                f"  ③「解約」→ 口数指定：{sell_parts}口\n"
+                f"  ④ 注文確定\n"
+                f"  ※ 残り{held_parts - sell_parts}口は引き続き保有"
+            )
+
         action_instructions = {
             "BUY": (
                 f"✅ 今日の操作：買い注文 ¥{rule_signal.amount:,}\n\n"
@@ -83,13 +111,7 @@ class EmailNotifier:
                 f"  ③ 「買付」→ 金額指定：¥{rule_signal.amount:,}\n"
                 f"  ④ 注文確定"
             ),
-            "SELL": (
-                f"✅ 今日の操作：解約注文\n\n"
-                f"  ① 楽天証券にログイン\n"
-                f"  ② 投資信託 →「楽天日本株式4.3倍ブル」を選択\n"
-                f"  ③「解約」→ 口数または全額を指定\n"
-                f"  ④ 注文確定"
-            ),
+            "SELL": sell_instruction,
             "HOLD": (
                 "⏸️ 今日の操作：なし\n\n"
                 "  今日は相場の様子を見るだけでOK。\n"
@@ -100,9 +122,14 @@ class EmailNotifier:
         # X（Twitter）投稿文
         cme_dir = "↓" if data.cme_nikkei_change < 0 else "↑"
         vix_short = "🚨危険" if data.vix_close >= 30 else ("⚠️警戒" if data.vix_close >= 25 else "😌安定")
+        if rule_signal.action == "SELL" and sell_parts > 0:
+            _sell_label = "全部" if sell_parts >= held_parts else f"{sell_parts}口"
+            sns_sell_text = f"{_sell_label}解約します！（¥{sell_amount:,}）"
+        else:
+            sns_sell_text = "保有なし（今日は様子見）"
         sns_action = {
             "BUY": f"¥{rule_signal.amount:,} 買い注文を入れます！",
-            "SELL": "保有分を解約します！",
+            "SELL": sns_sell_text,
             "HOLD": "今日は様子見。何もしません。",
         }
         sns_post = (
@@ -225,7 +252,7 @@ class EmailNotifier:
 ※ 投資は自己責任です。このメールはあくまで参考情報です。
 """
 
-    def send_line(self, rule_signal: RuleSignal, market_data: MarketData, news_items: "list[NewsItem] | None" = None):
+    def send_line(self, rule_signal: RuleSignal, market_data: MarketData, news_items: "list[NewsItem] | None" = None, sell_parts: int = 0):
         if not config.LINE_CHANNEL_ACCESS_TOKEN or not config.LINE_USER_ID:
             return
         if news_items is None:
@@ -236,6 +263,13 @@ class EmailNotifier:
 
         nikkei_arrow = "↑" if market_data.nikkei_change >= 0 else "↓"
         cme_arrow = "↑" if market_data.cme_nikkei_change >= 0 else "↓"
+
+        if rule_signal.action == "BUY":
+            action_line = f"→ ¥{rule_signal.amount:,} 買い注文を入れよう！"
+        elif rule_signal.action == "SELL" and sell_parts > 0:
+            action_line = f"→ {sell_parts}口（¥{sell_parts * config.NORMAL_TRADE:,}）解約しよう！"
+        else:
+            action_line = "→ 今日は何もしない"
 
         news_lines = ""
         if news_items:
@@ -248,7 +282,8 @@ class EmailNotifier:
             f"おはよう！ブルみん×ベアドンだよ🐂🧊\n"
             f"今日もチェックしてくれてありがとう！\n\n"
             f"【{today} の結論】\n"
-            f"{stance}\n\n"
+            f"{stance}\n"
+            f"{action_line}\n\n"
             f"📊 マーケット速報\n"
             f"日本株（日経225）: {market_data.nikkei_close:,.0f}円 {nikkei_arrow}({market_data.nikkei_change:+.0f})\n"
             f"アメリカ株（S&P500）: {market_data.sp500_close:,.2f} ({market_data.sp500_change:+.2f})\n"

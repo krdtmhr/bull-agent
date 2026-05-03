@@ -49,6 +49,19 @@ def main():
         )
     print(f"ルールシグナル: {rule_signal.action} ¥{rule_signal.amount:,} (確信度: {rule_signal.confidence * 100:.0f}%)")
 
+    # 売り口数を決定（確信度・VIX・保有口数から）
+    sell_parts = 0
+    if rule_signal.action == "SELL":
+        held = portfolio.parts_used()
+        if held > 0:
+            if rule_signal.confidence >= 0.7 or data.vix_close >= 25:
+                sell_parts = held                        # 全部売り
+            elif rule_signal.confidence >= 0.5:
+                sell_parts = max(1, (held + 1) // 2)    # 半分（切り上げ）
+            else:
+                sell_parts = 1                           # 1口だけ
+    print(f"売り口数: {sell_parts}口")
+
     print("ニュース収集中...")
     news_items = fetch_news()
     news_items = translate_titles(news_items)
@@ -96,11 +109,11 @@ def main():
 
     print("メール送信中...")
     notifier = EmailNotifier()
-    notifier.send_signal_email(rule_signal, ai_analysis, data, portfolio, news_items[:5])
+    notifier.send_signal_email(rule_signal, ai_analysis, data, portfolio, news_items[:5], sell_parts)
     print("メール送信完了")
 
     print("LINE通知送信中...")
-    notifier.send_line(rule_signal, data, news_items[:3])
+    notifier.send_line(rule_signal, data, news_items[:3], sell_parts)
     print("LINE通知送信完了")
 
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 分析完了")
