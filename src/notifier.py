@@ -380,8 +380,49 @@ class EmailNotifier:
         )
         urllib.request.urlopen(req)
 
+    def _chara_dialogue(self, signal: str, action: str) -> tuple[str, str, str]:
+        """
+        シグナルと実際の行動の組み合わせから台本を生成する。
+        Returns: (subject_label, burumin_line, beardon_line)
+        """
+        key = (signal, action)
+        scripts = {
+            ("BUY",  "BUY"):  ("📈 天の声通り！買いました",
+                               "ブルみん: よっしゃ！天の声に従ったぞ！これが俺の本領発揮や！💪",
+                               "ベアドン: …ふん。まあシグナル通りに動いたのは認める。だが油断するな。"),
+            ("BUY",  "HOLD"): ("⏸️ BUYシグナルだったけど…見送りました",
+                               "ブルみん: う〜ん、天の声はBUYって言ってるんだけど…なんか今日はちょっと怖くて。見送りました。",
+                               "ベアドン: 珍しく冷静じゃないか。悪くない判断だ。勇気ある撤退もある。"),
+            ("BUY",  "SELL"): ("📉 BUYシグナルだったのに利確しました",
+                               "ブルみん: 天の声はBUYって言ってたけど…怖くなって売っちゃった。ごめんなさい。",
+                               "ベアドン: ふむ。ルールを破ったのは褒められんが、利確は利確だ。次は根拠を持って動け。"),
+            ("SELL", "SELL"): ("📉 ベアドンの言う通り！売りました",
+                               "ブルみん: 今回はベアドン、お前が正しかった。素直に認めます。売りました。",
+                               "ベアドン: …珍しく賢い選択だ。私の言う通りにすれば間違いない。"),
+            ("SELL", "HOLD"): ("⏸️ SELLシグナルだったけど…ホールドしました",
+                               "ブルみん: ベアドンは売れって言ってるけど、まだいけると思って持ちました！",
+                               "ベアドン: …やれやれ。まあいい。ただし次の動きをよく見ておけ。"),
+            ("SELL", "BUY"):  ("📈 SELLシグナルなのに逆張り！買いました",
+                               "ブルみん: 待って待って！ベアドンは売れって言ってるけど、俺はここが底だと思う！買う！",
+                               "ベアドン: …馬鹿者。後で泣いても知らんぞ。結果で証明してみせろ。"),
+            ("HOLD", "BUY"):  ("📈 HOLDシグナルだったけど自分の判断で買いました",
+                               "ブルみん: 天の声はHOLDって言ってるけど、俺の直感がここは買いって言ってる！",
+                               "ベアドン: …ルールを破るな。だがお前の直感がどこまで通じるか見せてもらおう。"),
+            ("HOLD", "SELL"): ("📉 HOLDシグナルだったけど利確しました",
+                               "ブルみん: なんか不安になってきて…HOLDって言われてるけどちょっと利確しておきます。",
+                               "ベアドン: 弱気め。だが利確は悪くない選択だ。感情で動くな、次は根拠を持て。"),
+            ("HOLD", "HOLD"): ("⏸️ 今日は様子見。静かな一日でした",
+                               "ブルみん: 今日は天の声もHOLD、俺もHOLD。静かな一日でした。",
+                               "ベアドン: 動かない日こそ大事だ。次の波に備えておけ。"),
+        }
+        default = ("⏸️ 本日の結果",
+                   "ブルみん: 今日も相場と向き合いました。",
+                   "ベアドン: 結果はどうあれ、考えて動くことが大事だ。")
+        return scripts.get(key, default)
+
     def send_report_email(
         self,
+        signal_action: str,
         action: str,
         trade_summary: str,
         screenshot_path: "str | None",
@@ -389,26 +430,34 @@ class EmailNotifier:
         portfolio: Portfolio,
     ):
         today = datetime.now().strftime("%Y-%m-%d")
-        action_icon = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(action, "⏸️")
-        subject = f"【{action_icon} 売買完了】ブルみん×ベアドン 本日の結果 ({today})"
+        label, burumin, beardon = self._chara_dialogue(signal_action, action)
+        subject = f"【{label}】ブルみん×ベアドン ({today})"
 
-        chara = {
-            "BUY":  ("ブルみん: よっしゃ！買ったぞ！これが俺の選択だ！💪",
-                     "ベアドン: …ふん。まあ、筋は通っている。結果を見せてもらおう。"),
-            "SELL": ("ブルみん: 利確！ありがとうございました！🙏",
-                     "ベアドン: 売り時を見極めた。悪くない判断だ。"),
-            "HOLD": ("ブルみん: 今日は待ちだ。動かないのも戦略！",
-                     "ベアドン: 正解。焦って動く方が損をする。"),
-        }.get(action, ("", ""))
+        action_icon = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(action, "⏸️")
+        signal_icon = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(signal_action, "⏸️")
+
+        # X（Twitter）投稿文
+        sns_post = (
+            f"🐂×🧊 今日の結果（{today}）\n"
+            f"{action_icon} {trade_summary}\n\n"
+            f"{burumin}\n"
+            f"{beardon}\n\n"
+            f"日経: {market_data.nikkei_close:,.0f}円 / VIX: {market_data.vix_close:.1f}\n\n"
+            f"夢は推せ。でも、ちゃんと考えて推せ。🌟\n"
+            f"#楽天4倍ブル #投資日記 #ブルみん"
+        )
 
         body = f"""🐂×🧊 ブルみん×ベアドン 本日の売買結果 - {today}
 {"=" * 46}
 
-{chara[0]}
-{chara[1]}
+{burumin}
+{beardon}
 
 {"=" * 46}
 【本日の売買】
+
+  シグナル（天の声）: {signal_icon} {signal_action}
+  実際の行動:         {action_icon} {action}
 
   {trade_summary}
 
@@ -418,8 +467,9 @@ class EmailNotifier:
   総資本：      ¥{portfolio.total_capital:,}
   使える資金：  ¥{portfolio.available_capital:,}
   投資中：      ¥{portfolio.current_position_value:,}
-  投資枠：      {portfolio.parts_used()}/{5}口
+  投資枠：      {portfolio.parts_used()}/{config.MAX_PARTS}口
   1口サイズ：   ¥{portfolio.lot_size():,}
+  累計入金額：  ¥{portfolio.total_deposited:,}
 
 {"=" * 46}
 【市場データ】
@@ -429,6 +479,11 @@ class EmailNotifier:
   CME先物:    {market_data.cme_nikkei_close:,.0f}円 ({market_data.cme_nikkei_change:+,.0f})
   VIX:        {market_data.vix_close:.2f}
   ドル円:     {market_data.usdjpy_rate:.2f}円
+
+{"=" * 46}
+【📱 X（Twitter）投稿文 ─ そのままコピペでOK】
+
+{sns_post}
 
 {"=" * 46}
 {"※ 約定スクリーンショットを添付しています。" if screenshot_path else "※ スクリーンショットの添付はありませんでした。"}
@@ -457,6 +512,7 @@ class EmailNotifier:
 
     def send_report_line(
         self,
+        signal_action: str,
         action: str,
         trade_summary: str,
         market_data: MarketData,
@@ -466,12 +522,15 @@ class EmailNotifier:
             return
         today = datetime.now().strftime("%Y-%m-%d")
         action_icon = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(action, "⏸️")
+        _, burumin, beardon = self._chara_dialogue(signal_action, action)
         text = (
             f"{action_icon} 売買完了！ブルみん×ベアドン\n\n"
+            f"{burumin}\n"
+            f"{beardon}\n\n"
             f"【{today} 本日の結果】\n"
             f"{trade_summary}\n\n"
             f"総資本：¥{portfolio.total_capital:,}\n"
-            f"投資枠：{portfolio.parts_used()}/{5}口\n\n"
+            f"投資枠：{portfolio.parts_used()}/{config.MAX_PARTS}口\n\n"
             f"詳細と約定スクショはメールをチェックしてね！\n"
             f"夢は推せ。でも、ちゃんと考えて推せ。🌟"
         )
