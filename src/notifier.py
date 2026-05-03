@@ -1,3 +1,4 @@
+import os
 import smtplib
 import ssl
 import urllib.request
@@ -78,7 +79,7 @@ class EmailNotifier:
             "HOLD": "今日は方向感がなし。\n  「動かない」も立派な投資判断です。",
         }
         # SELL操作の文言を口数に応じて動的生成
-        sell_amount = sell_parts * config.NORMAL_TRADE
+        sell_amount = sell_parts * portfolio.lot_size()
         held_parts = portfolio.parts_used()
         if sell_parts == 0:
             sell_instruction = (
@@ -245,6 +246,8 @@ class EmailNotifier:
 使える資金：    ¥{portfolio.available_capital:,}
 投資中の金額：  ¥{portfolio.current_position_value:,}
 投資枠：        {portfolio.parts_used()}/{config.MAX_PARTS}口（残り{portfolio.parts_available()}枠）
+1口サイズ：     ¥{portfolio.lot_size():,}（複利ロット）
+累計入金額：    ¥{portfolio.total_deposited:,}
 累計取引回数：  {portfolio.trade_count}回
 最終更新：      {updated}
 
@@ -252,7 +255,7 @@ class EmailNotifier:
 ※ 投資は自己責任です。このメールはあくまで参考情報です。
 """
 
-    def send_line(self, rule_signal: RuleSignal, market_data: MarketData, news_items: "list[NewsItem] | None" = None, sell_parts: int = 0):
+    def send_line(self, rule_signal: RuleSignal, market_data: MarketData, portfolio: Portfolio, news_items: "list[NewsItem] | None" = None, sell_parts: int = 0):
         if not config.LINE_CHANNEL_ACCESS_TOKEN or not config.LINE_USER_ID:
             return
         if news_items is None:
@@ -267,7 +270,7 @@ class EmailNotifier:
         if rule_signal.action == "BUY":
             action_line = f"→ ¥{rule_signal.amount:,} 買い注文を入れよう！"
         elif rule_signal.action == "SELL" and sell_parts > 0:
-            action_line = f"→ {sell_parts}口（¥{sell_parts * config.NORMAL_TRADE:,}）解約しよう！"
+            action_line = f"→ {sell_parts}口（¥{sell_parts * portfolio.lot_size():,}）解約しよう！"
         else:
             action_line = "→ 今日は何もしない"
 
@@ -291,6 +294,185 @@ class EmailNotifier:
             f"ドル円: {market_data.usdjpy_rate:.2f}円"
             f"{news_lines}\n\n"
             f"詳しい分析はメールをチェックしてね！\n"
+            f"夢は推せ。でも、ちゃんと考えて推せ。🌟"
+        )
+        data = json.dumps({"to": config.LINE_USER_ID, "messages": [{"type": "text", "text": text}]}).encode("utf-8")
+        req = urllib.request.Request(
+            "https://api.line.me/v2/bot/message/push",
+            data=data,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {config.LINE_CHANNEL_ACCESS_TOKEN}"},
+        )
+        urllib.request.urlopen(req)
+
+    def send_deposit_email(self, amount: int, portfolio: Portfolio, before_capital: int):
+        today = datetime.now().strftime("%Y-%m-%d")
+        subject = f"【💰 入金完了】ブルみん×ベアドン ({today})"
+        new_lot = portfolio.lot_size()
+        body = f"""💰 入金完了のお知らせ - {today}
+{"=" * 46}
+
+ブルみん: やった～！¥{amount:,} 入金されたね！
+         お金が増えると、作戦の幅が広がるよ💪
+
+ベアドン: ふん、浮かれるな。
+         でも…1口の金額が変わったから確認しておけ。
+
+{"=" * 46}
+【入金内容】
+
+  入金額：        ¥{amount:,}
+  入金前の総資本：¥{before_capital:,}
+  入金後の総資本：¥{portfolio.total_capital:,}
+  累計入金額：    ¥{portfolio.total_deposited:,}
+
+{"=" * 46}
+【新しいロットサイズ（複利ロット）】
+
+  1口あたり：¥{new_lot:,}
+  （総資本×10%、¥10,000〜¥15,000の範囲）
+
+  ブルみん: 明日からこのサイズで買い注文を入れてね！
+  ベアドン: 算式: max(¥10,000, min(¥15,000, 総資本×10%))
+
+{"=" * 46}
+【資金状況】
+
+  総資本：      ¥{portfolio.total_capital:,}
+  使える資金：  ¥{portfolio.available_capital:,}
+  投資中：      ¥{portfolio.current_position_value:,}
+  投資枠：      {portfolio.parts_used()}/{5}口（残り{portfolio.parts_available()}枠）
+
+{"=" * 46}
+※ 投資は自己責任です。このメールはあくまで参考情報です。
+"""
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = self.email_from
+        msg["To"] = self.email_to
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL(self.smtp_host, self.smtp_port, context=context) as server:
+            server.login(self.email_from, self.password)
+            server.sendmail(self.email_from, self.email_to, msg.as_string())
+
+    def send_deposit_line(self, amount: int, portfolio: Portfolio, before_capital: int):
+        if not config.LINE_CHANNEL_ACCESS_TOKEN or not config.LINE_USER_ID:
+            return
+        today = datetime.now().strftime("%Y-%m-%d")
+        new_lot = portfolio.lot_size()
+        text = (
+            f"💰 入金完了！ブルみん×ベアドン\n\n"
+            f"ブルみん: ¥{amount:,} 入金されたね！\n"
+            f"ベアドン: 1口サイズが ¥{new_lot:,} になったぞ。\n\n"
+            f"【{today} 入金内容】\n"
+            f"入金額：¥{amount:,}\n"
+            f"総資本：¥{before_capital:,} → ¥{portfolio.total_capital:,}\n"
+            f"累計入金：¥{portfolio.total_deposited:,}\n\n"
+            f"次の買い注文は ¥{new_lot:,} で入れてね！\n"
+            f"夢は推せ。でも、ちゃんと考えて推せ。🌟"
+        )
+        data = json.dumps({"to": config.LINE_USER_ID, "messages": [{"type": "text", "text": text}]}).encode("utf-8")
+        req = urllib.request.Request(
+            "https://api.line.me/v2/bot/message/push",
+            data=data,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {config.LINE_CHANNEL_ACCESS_TOKEN}"},
+        )
+        urllib.request.urlopen(req)
+
+    def send_report_email(
+        self,
+        action: str,
+        trade_summary: str,
+        screenshot_path: "str | None",
+        market_data: MarketData,
+        portfolio: Portfolio,
+    ):
+        today = datetime.now().strftime("%Y-%m-%d")
+        action_icon = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(action, "⏸️")
+        subject = f"【{action_icon} 売買完了】ブルみん×ベアドン 本日の結果 ({today})"
+
+        chara = {
+            "BUY":  ("ブルみん: よっしゃ！買ったぞ！これが俺の選択だ！💪",
+                     "ベアドン: …ふん。まあ、筋は通っている。結果を見せてもらおう。"),
+            "SELL": ("ブルみん: 利確！ありがとうございました！🙏",
+                     "ベアドン: 売り時を見極めた。悪くない判断だ。"),
+            "HOLD": ("ブルみん: 今日は待ちだ。動かないのも戦略！",
+                     "ベアドン: 正解。焦って動く方が損をする。"),
+        }.get(action, ("", ""))
+
+        body = f"""🐂×🧊 ブルみん×ベアドン 本日の売買結果 - {today}
+{"=" * 46}
+
+{chara[0]}
+{chara[1]}
+
+{"=" * 46}
+【本日の売買】
+
+  {trade_summary}
+
+{"=" * 46}
+【資金状況】
+
+  総資本：      ¥{portfolio.total_capital:,}
+  使える資金：  ¥{portfolio.available_capital:,}
+  投資中：      ¥{portfolio.current_position_value:,}
+  投資枠：      {portfolio.parts_used()}/{5}口
+  1口サイズ：   ¥{portfolio.lot_size():,}
+
+{"=" * 46}
+【市場データ】
+
+  日経225:    {market_data.nikkei_close:,.0f}円 ({market_data.nikkei_change:+,.0f})
+  S&P500:     {market_data.sp500_close:,.2f} ({market_data.sp500_change:+,.2f})
+  CME先物:    {market_data.cme_nikkei_close:,.0f}円 ({market_data.cme_nikkei_change:+,.0f})
+  VIX:        {market_data.vix_close:.2f}
+  ドル円:     {market_data.usdjpy_rate:.2f}円
+
+{"=" * 46}
+{"※ 約定スクリーンショットを添付しています。" if screenshot_path else "※ スクリーンショットの添付はありませんでした。"}
+"""
+        msg = MIMEMultipart("mixed")
+        msg["Subject"] = subject
+        msg["From"] = self.email_from
+        msg["To"] = self.email_to
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+
+        if screenshot_path and os.path.exists(screenshot_path):
+            with open(screenshot_path, "rb") as f:
+                img_data = f.read()
+            ext = os.path.splitext(screenshot_path)[1].lower().lstrip(".")
+            mime_type = "png" if ext == "png" else "jpeg"
+            from email.mime.image import MIMEImage
+            img = MIMEImage(img_data, _subtype=mime_type)
+            img.add_header("Content-Disposition", "attachment",
+                           filename=os.path.basename(screenshot_path))
+            msg.attach(img)
+
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL(self.smtp_host, self.smtp_port, context=context) as server:
+            server.login(self.email_from, self.password)
+            server.sendmail(self.email_from, self.email_to, msg.as_string())
+
+    def send_report_line(
+        self,
+        action: str,
+        trade_summary: str,
+        market_data: MarketData,
+        portfolio: Portfolio,
+    ):
+        if not config.LINE_CHANNEL_ACCESS_TOKEN or not config.LINE_USER_ID:
+            return
+        today = datetime.now().strftime("%Y-%m-%d")
+        action_icon = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(action, "⏸️")
+        text = (
+            f"{action_icon} 売買完了！ブルみん×ベアドン\n\n"
+            f"【{today} 本日の結果】\n"
+            f"{trade_summary}\n\n"
+            f"総資本：¥{portfolio.total_capital:,}\n"
+            f"投資枠：{portfolio.parts_used()}/{5}口\n\n"
+            f"詳細と約定スクショはメールをチェックしてね！\n"
             f"夢は推せ。でも、ちゃんと考えて推せ。🌟"
         )
         data = json.dumps({"to": config.LINE_USER_ID, "messages": [{"type": "text", "text": text}]}).encode("utf-8")

@@ -1,6 +1,9 @@
 import sys
+import io
 import traceback
 from datetime import datetime
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 from src.market_data import fetch_market_data
 from src.signal_engine import generate_rule_signal
@@ -38,7 +41,8 @@ def main():
     data = fetch_market_data()
     print(f"日経: {data.nikkei_close:.0f} ({data.nikkei_change:+.0f}) / S&P500: {data.sp500_close:.2f} ({data.sp500_change:+.2f}) / CME先物: {data.cme_nikkei_close:.0f} ({data.cme_nikkei_change:+.0f}) / VIX: {data.vix_close:.2f} / 米10年債: {data.us10y_rate:.2f}%")
 
-    rule_signal = generate_rule_signal(data)
+    lot_size = portfolio.lot_size()
+    rule_signal = generate_rule_signal(data, lot_size)
     if rule_signal.action == "BUY" and portfolio.at_max_parts():
         from src.signal_engine import RuleSignal
         rule_signal = RuleSignal(
@@ -105,6 +109,7 @@ def main():
     portfolio.last_signal_reason = rule_signal.reason
     portfolio.last_signal_date = datetime.now().strftime("%Y-%m-%d")
     portfolio.last_signal_confidence = combined_confidence
+    portfolio.last_sell_parts = sell_parts
     portfolio.save()
 
     print("メール送信中...")
@@ -113,7 +118,7 @@ def main():
     print("メール送信完了")
 
     print("LINE通知送信中...")
-    notifier.send_line(rule_signal, data, news_items[:3], sell_parts)
+    notifier.send_line(rule_signal, data, portfolio, news_items[:3], sell_parts)
     print("LINE通知送信完了")
 
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 分析完了")
