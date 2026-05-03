@@ -380,6 +380,68 @@ class EmailNotifier:
         )
         urllib.request.urlopen(req)
 
+    def _chara_story(self, signal: str, action: str) -> str:
+        key = (signal, action)
+        stories = {
+            ("BUY",  "BUY"):  (
+                "今日は天の声もブルみんも同じ方向を向いていた。\n"
+                "押し目と判断して1口買い増し。\n"
+                "ブルみんは迷わなかった。「シグナルが背中を押してくれた」と言っている。\n"
+                "強気相場でこういう一致が出ると、その後の上昇に乗れることが多い。"
+            ),
+            ("BUY",  "HOLD"): (
+                "天の声はBUYと言っていたが、ブルみんは動かなかった。\n"
+                "「数字は買いを示してるけど、何か引っかかった」——そう語るブルみん。\n"
+                "シグナルに逆らう判断は勇気がいる。\n"
+                "結果は後でわかる。でも、自分の感覚を信じた日があったという事実は残る。"
+            ),
+            ("BUY",  "SELL"): (
+                "天の声はBUYを告げていた。でもブルみんは売った。\n"
+                "「利益が出てるうちに確定したかった」——正直な気持ちだろう。\n"
+                "ルールより感情が勝った日。悪いことではない。\n"
+                "ただ、ベアドンは「次は根拠を言葉にしてから動け」と釘を刺している。"
+            ),
+            ("SELL", "SELL"): (
+                "天の声もベアドンも「売れ」と言っていた。ブルみんは素直に従った。\n"
+                "利益確定は投資の醍醐味のひとつ。\n"
+                "「売るのって怖い」と思う人も多いが、ルール通りに動けたブルみんを褒めたい。\n"
+                "ベアドンも珍しく満足そうだった。"
+            ),
+            ("SELL", "HOLD"): (
+                "天の声は「売れ」と言っていた。でもブルみんはホールドを選んだ。\n"
+                "「まだいける気がした」——その感覚、わかる人も多いはず。\n"
+                "これが吉と出るか凶と出るかは相場が決める。\n"
+                "ブルみんの勝負はまだ終わっていない。"
+            ),
+            ("SELL", "BUY"):  (
+                "天の声は慎重を促していた。なのにブルみんは買い増した。\n"
+                "「ここが底だ」という直感。逆張りの美学。\n"
+                "ベアドンは烈火のごとく怒っているが、ブルみんは意に介さない。\n"
+                "強気の逆張りが成功すれば最高の話になる。失敗しても、それもブルみんの物語だ。"
+            ),
+            ("HOLD", "BUY"):  (
+                "天の声は「様子見」を推奨していた。でもブルみんは買った。\n"
+                "ルール通りではない。でも、自分の判断で動いた。\n"
+                "「相場に答えてもらうしかない」——ブルみんは静かにそう言った。\n"
+                "投資は最終的に自分で決める。それがブルみんスタイルだ。"
+            ),
+            ("HOLD", "SELL"): (
+                "ホールドが正解とされていた日に、ブルみんは利確した。\n"
+                "「不安だった」——正直な告白だ。\n"
+                "利益を守ることは悪くない。ただ、感情で動いた日として記録しておこう。\n"
+                "ベアドンは「感情ではなく根拠で動け」と繰り返す。"
+            ),
+            ("HOLD", "HOLD"): (
+                "今日はシグナルも、ブルみんの気持ちも、同じ答えだった。「動かない」。\n"
+                "投資において「何もしない」は立派な判断だ。\n"
+                "嵐が来ていないなら、船を出す必要はない。\n"
+                "ベアドンも今日はただ静かに相場を眺めていた。"
+            ),
+        }
+        return stories.get(key,
+            "今日も相場と向き合った一日だった。\nどんな結果も、積み重ねが力になる。"
+        )
+
     def _chara_dialogue(self, signal: str, action: str) -> tuple[str, str, str]:
         """
         シグナルと実際の行動の組み合わせから台本を生成する。
@@ -431,6 +493,7 @@ class EmailNotifier:
     ):
         today = datetime.now().strftime("%Y-%m-%d")
         _, burumin, beardon = self._chara_dialogue(signal_action, action)
+        story = self._chara_story(signal_action, action)
         subject_map = {
             "BUY":  f"📈 今日は強気に買ったよ！ブルみん×ベアドン ({today})",
             "SELL": f"📉 今日は利確したよ！ブルみん×ベアドン ({today})",
@@ -451,11 +514,36 @@ class EmailNotifier:
             f"#楽天4倍ブル #投資日記 #ブルみん"
         )
 
+        # 市場データ解説
+        def arrow(val): return "↑ 上昇" if val >= 0 else "↓ 下落"
+        vix = market_data.vix_close
+        if vix >= 30:   vix_label = "🚨 危険水準（大荒れ注意）"
+        elif vix >= 25: vix_label = "⚠️ 警戒水準（荒れやすい）"
+        elif vix >= 20: vix_label = "😟 やや不安定"
+        else:           vix_label = "😌 落ち着いている"
+        cme_note = "  ⚠️ 明日の日本株は下落見通し" if market_data.cme_nikkei_change < 0 else "  ✅ 明日の日本株は上昇見通し"
+        usdjpy_note = "円安（輸出に有利）" if market_data.usdjpy_rate >= 150 else "円高（輸入に有利）"
+
+        # パフォーマンス
+        pnl = portfolio.total_capital - portfolio.total_deposited
+        pnl_sign = "+" if pnl >= 0 else ""
+        pnl_pct = (pnl / portfolio.total_deposited * 100) if portfolio.total_deposited > 0 else 0.0
+
         body = f"""🐂×🧊 ブルみん×ベアドン 本日の売買結果 - {today}
 {"=" * 46}
+おつかれさま！今日もブルみんの一日を届けるよ。
+夢は推せ。でも、ちゃんと考えて推せ。
+
+{"=" * 46}
+【今日のブルみん】
 
 {burumin}
 {beardon}
+
+{"=" * 46}
+【今日の物語】
+
+{story}
 
 {"=" * 46}
 【本日の売買】
@@ -463,21 +551,45 @@ class EmailNotifier:
   {action_icon} {trade_summary}
 
 {"=" * 46}
-【資金状況】
+【今日の相場環境】
 
-  総資本：      ¥{portfolio.total_capital:,}
-  投資中：      ¥{portfolio.current_position_value:,}
-  投資枠：      {portfolio.parts_used()}/{config.MAX_PARTS}口
-  1口サイズ：   ¥{portfolio.lot_size():,}
+📌 日本株（日経225）
+   {market_data.nikkei_close:,.0f}円  {arrow(market_data.nikkei_change)}（前日比 {market_data.nikkei_change:+,.0f}円）
+
+📌 アメリカ株（S&P500）
+   {market_data.sp500_close:,.2f}  {arrow(market_data.sp500_change)}（前日比 {market_data.sp500_change:+,.2f}）
+
+📌 明日の日本株見通し（CME先物）
+   {market_data.cme_nikkei_close:,.0f}円  {arrow(market_data.cme_nikkei_change)}（前日比 {market_data.cme_nikkei_change:+,.0f}円）
+{cme_note}
+
+📌 ドル円
+   1ドル = {market_data.usdjpy_rate:.2f}円  {usdjpy_note}
+
+📌 VIX（恐怖指数）
+   {market_data.vix_close:.2f}  {vix_label}（前日比 {market_data.vix_change:+.2f}）
+   ※ 20以下：安定、25超：警戒、30超：大荒れ注意
+
+📌 米国10年債利回り
+   {market_data.us10y_rate:.2f}%（前日比 {market_data.us10y_change:+.2f}%）
+   {"金利上昇中（株の下押し要因）" if market_data.us10y_change > 0 else "金利低下中（株の支援要因）"}
 
 {"=" * 46}
-【市場データ】
+【ブルみんの資金状況】
 
-  日経225:    {market_data.nikkei_close:,.0f}円 ({market_data.nikkei_change:+,.0f})
-  S&P500:     {market_data.sp500_close:,.2f} ({market_data.sp500_change:+,.2f})
-  CME先物:    {market_data.cme_nikkei_close:,.0f}円 ({market_data.cme_nikkei_change:+,.0f})
-  VIX:        {market_data.vix_close:.2f}
-  ドル円:     {market_data.usdjpy_rate:.2f}円
+  総資本：        ¥{portfolio.total_capital:,}
+  投資中：        ¥{portfolio.current_position_value:,}
+  使える資金：    ¥{portfolio.available_capital:,}
+  投資枠：        {portfolio.parts_used()}/{config.MAX_PARTS}口（残り{portfolio.parts_available()}枠）
+  1口サイズ：     ¥{portfolio.lot_size():,}（複利ロット）
+
+{"=" * 46}
+【累計パフォーマンス】
+
+  累計入金額：    ¥{portfolio.total_deposited:,}
+  現在の総資本：  ¥{portfolio.total_capital:,}
+  損益：          {pnl_sign}¥{pnl:,}（{pnl_sign}{pnl_pct:.1f}%）
+  取引回数：      {portfolio.trade_count}回
 
 {"=" * 46}
 【📱 X（Twitter）投稿文 ─ そのままコピペでOK】
@@ -486,6 +598,7 @@ class EmailNotifier:
 
 {"=" * 46}
 {"※ 約定スクリーンショットを添付しています。" if screenshot_path else "※ スクリーンショットの添付はありませんでした。"}
+※ 投資は自己責任です。このメールはあくまで記録と物語の共有です。
 """
         msg = MIMEMultipart("mixed")
         msg["Subject"] = subject
