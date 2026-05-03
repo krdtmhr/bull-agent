@@ -6,7 +6,7 @@ load_dotenv()
 CAPITAL = 100000
 MAX_PARTS = 5
 LOT_MIN = 10_000
-LOT_CAP = 15_000
+LOT_PCT = 0.20  # 1口あたり総資本の20%（シミュ比較で10%→20%に変更）
 
 AI_PROVIDER = "openai"
 

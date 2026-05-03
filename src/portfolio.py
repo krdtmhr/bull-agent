@@ -59,7 +59,7 @@ class Portfolio:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
     def lot_size(self) -> int:
-        return max(config.LOT_MIN, min(config.LOT_CAP, math.floor(self.total_capital * 0.10 / 1_000) * 1_000))
+        return max(config.LOT_MIN, math.floor(self.total_capital * config.LOT_PCT / 1_000) * 1_000)
 
     def deposit(self, amount: int):
         self.total_capital += amount
