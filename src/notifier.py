@@ -575,6 +575,31 @@ class EmailNotifier:
         )
         urllib.request.urlopen(req)
 
+    def send_tweet_text_line(self, action: str, trade_summary: str, market_data: MarketData):
+        """X投稿用テキストをLINEに送る（コピペして手動投稿用）。"""
+        if not config.LINE_CHANNEL_ACCESS_TOKEN or not config.LINE_USER_ID:
+            return
+        today = datetime.now().strftime("%Y-%m-%d")
+        action_icon = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(action, "⏸️")
+        burumin, beardon = self._chara_dialogue(action)
+        tweet_text = (
+            f"🐂×🧊 今日の結果（{today}）\n"
+            f"{action_icon} {trade_summary}\n\n"
+            f"{burumin}\n"
+            f"{beardon}\n\n"
+            f"日経: {market_data.nikkei_close:,.0f}円 / VIX: {market_data.vix_close:.1f}\n\n"
+            f"夢は推せ。でも、ちゃんと考えて推せ。🌟\n"
+            f"#楽天4倍ブル #投資日記 #ブルみん"
+        )
+        text = f"📋 X投稿用（コピペしてね）\n─────────────\n{tweet_text}"
+        data = json.dumps({"to": config.LINE_USER_ID, "messages": [{"type": "text", "text": text}]}).encode("utf-8")
+        req = urllib.request.Request(
+            "https://api.line.me/v2/bot/message/push",
+            data=data,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {config.LINE_CHANNEL_ACCESS_TOKEN}"},
+        )
+        urllib.request.urlopen(req)
+
     def send_tweet(self, action: str, trade_summary: str, market_data: MarketData) -> bool:
         """X（Twitter）に投稿する。スクショなしのテキスト投稿。"""
         if not config.X_API_KEY or not config.X_ACCESS_TOKEN:
