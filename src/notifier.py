@@ -575,6 +575,41 @@ class EmailNotifier:
         )
         urllib.request.urlopen(req)
 
+    def send_tweet(self, action: str, trade_summary: str, market_data: MarketData) -> bool:
+        """X（Twitter）に投稿する。スクショなしのテキスト投稿。"""
+        if not config.X_API_KEY or not config.X_ACCESS_TOKEN:
+            print("X APIキー未設定のためスキップ")
+            return False
+        try:
+            import tweepy
+            client = tweepy.Client(
+                consumer_key=config.X_API_KEY,
+                consumer_secret=config.X_API_KEY_SECRET,
+                access_token=config.X_ACCESS_TOKEN,
+                access_token_secret=config.X_ACCESS_TOKEN_SECRET,
+            )
+            today = datetime.now().strftime("%Y-%m-%d")
+            action_icon = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(action, "⏸️")
+            burumin, beardon = self._chara_dialogue(action)
+            text = (
+                f"🐂×🧊 今日の結果（{today}）\n"
+                f"{action_icon} {trade_summary}\n\n"
+                f"{burumin}\n"
+                f"{beardon}\n\n"
+                f"日経: {market_data.nikkei_close:,.0f}円 / VIX: {market_data.vix_close:.1f}\n\n"
+                f"夢は推せ。でも、ちゃんと考えて推せ。🌟\n"
+                f"#楽天4倍ブル #投資日記 #ブルみん"
+            )
+            # 280文字超の場合はトリム
+            if len(text) > 280:
+                text = text[:277] + "..."
+            client.create_tweet(text=text)
+            print(f"X投稿完了: {len(text)}文字")
+            return True
+        except Exception as e:
+            print(f"X投稿失敗: {e}")
+            return False
+
     def _upload_screenshot_to_github(self, screenshot_path: str) -> "str | None":
         """スクショをGitHubリポジトリにpushして公開URLを返す。"""
         try:

@@ -74,6 +74,10 @@ def main():
     notifier.send_report_email(action, trade_summary, shot, data, portfolio)
     print("報告メール送信完了")
 
+    print("X（Twitter）投稿中...")
+    notifier.send_tweet(action, trade_summary, data)
+    print("X投稿完了")
+
     print("LINE通知送信中...")
     notifier.send_report_line(action, trade_summary, data, portfolio, shot)
     print("LINE通知送信完了")
