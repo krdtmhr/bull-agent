@@ -71,15 +71,50 @@ class EmailNotifier:
             "HOLD": "⏸️ 様子見  ＝  待ちの日",
         }
         action_meaning = {
-            "BUY": "相場に上昇の気配があります。\n  小さく動いてみるのも一つの選択肢です。",
-            "SELL": "相場に警戒信号が出ています。\n  急いで動かないのが賢明かもしれません。",
-            "HOLD": "今日は方向感がはっきりしません。\n  「何もしない」という判断も、立派な投資の技術です。",
+            "BUY": "下落局面での押し目。\n  今日は買い注文を入れます。",
+            "SELL": "上昇局面での利益確定。\n  今日は解約注文を入れます。",
+            "HOLD": "今日は方向感がなし。\n  「動かない」も立派な投資判断です。",
         }
         action_instructions = {
-            "BUY": f"楽天証券にログイン → 楽天日本株式4.3倍ブル を検索\n参考金額: ¥{rule_signal.amount:,}（最終判断はご自身で）",
-            "SELL": f"楽天証券にログイン → 楽天日本株式4.3倍ブル を検索\n参考金額: ¥{rule_signal.amount:,}（最終判断はご自身で）",
-            "HOLD": "今日は相場の様子をながめるだけでOKです。\n（「動かない」も立派な投資判断です）",
+            "BUY": (
+                f"✅ 今日の操作：買い注文 ¥{rule_signal.amount:,}\n\n"
+                f"  ① 楽天証券にログイン\n"
+                f"  ② 投資信託 →「楽天日本株式4.3倍ブル」を検索\n"
+                f"  ③ 「買付」→ 金額指定：¥{rule_signal.amount:,}\n"
+                f"  ④ 注文確定"
+            ),
+            "SELL": (
+                f"✅ 今日の操作：解約注文\n\n"
+                f"  ① 楽天証券にログイン\n"
+                f"  ② 投資信託 →「楽天日本株式4.3倍ブル」を選択\n"
+                f"  ③「解約」→ 口数または全額を指定\n"
+                f"  ④ 注文確定"
+            ),
+            "HOLD": (
+                "⏸️ 今日の操作：なし\n\n"
+                "  今日は相場の様子を見るだけでOK。\n"
+                "  何もしないのが今日の正解です。"
+            ),
         }
+
+        # X（Twitter）投稿文
+        cme_dir = "↓" if data.cme_nikkei_change < 0 else "↑"
+        vix_short = "🚨危険" if data.vix_close >= 30 else ("⚠️警戒" if data.vix_close >= 25 else "😌安定")
+        sns_action = {
+            "BUY": f"¥{rule_signal.amount:,} 買い注文を入れます！",
+            "SELL": "保有分を解約します！",
+            "HOLD": "今日は様子見。何もしません。",
+        }
+        sns_post = (
+            f"🐂×🧊 今日の朝ナビ（{today}）\n"
+            f"{'📈' if rule_signal.action == 'BUY' else '📉' if rule_signal.action == 'SELL' else '⏸️'} "
+            f"{sns_action[rule_signal.action]}\n\n"
+            f"CME先物: {data.cme_nikkei_close:,.0f}円 {cme_dir}({data.cme_nikkei_change:+.0f})\n"
+            f"VIX: {data.vix_close:.1f} {vix_short}\n"
+            f"ドル円: {data.usdjpy_rate:.2f}円\n\n"
+            f"夢は推せ。でも、ちゃんと考えて推せ。🌟\n"
+            f"#楽天4倍ブル #投資日記 #ブルみん"
+        )
 
         pct = rule_signal.confidence * 100
         filled = round(pct / 20)
@@ -169,8 +204,13 @@ class EmailNotifier:
 
 {"=" * 46}
 {news_section}{"=" * 46}
-【実行手順】
+【今日の操作】
 {action_instructions[rule_signal.action]}
+
+{"=" * 46}
+【📱 X（Twitter）投稿文 ─ そのままコピペでOK】
+
+{sns_post}
 
 {"=" * 46}
 【あなたの資金状況】
