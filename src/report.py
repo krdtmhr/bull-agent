@@ -76,7 +76,6 @@ def main():
 
     print("LINE通知送信中...")
     notifier.send_report_line(action, trade_summary, data, portfolio, shot)
-    notifier.send_tweet_text_line(action, trade_summary, data)
     print("LINE通知送信完了")
 
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 完了")
