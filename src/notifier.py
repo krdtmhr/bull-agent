@@ -37,9 +37,9 @@ class EmailNotifier:
     ):
         today = datetime.now().strftime("%Y-%m-%d")
         subject_map = {
-            "BUY": f"【📈 強気寄り】ブルみん×ベアドン 朝ナビ ({today})",
-            "SELL": f"【📉 慎重寄り】ブルみん×ベアドン 朝ナビ ({today})",
-            "HOLD": f"【⏸️ 様子見】ブルみん×ベアドン 朝ナビ ({today})",
+            "BUY": f"【📈 本日のシグナル：強気寄り】操作指示 ({today})",
+            "SELL": f"【📉 本日のシグナル：慎重寄り】操作指示 ({today})",
+            "HOLD": f"【⏸️ 本日のシグナル：様子見】操作指示 ({today})",
         }
         subject = subject_map[rule_signal.action]
         body = self._build_body(rule_signal, ai_analysis, market_data, portfolio, today, news_items or [], sell_parts)
@@ -456,20 +456,15 @@ class EmailNotifier:
 {"=" * 46}
 【本日の売買】
 
-  シグナル（天の声）: {signal_icon} {signal_action}
-  実際の行動:         {action_icon} {action}
-
-  {trade_summary}
+  {action_icon} {trade_summary}
 
 {"=" * 46}
 【資金状況】
 
   総資本：      ¥{portfolio.total_capital:,}
-  使える資金：  ¥{portfolio.available_capital:,}
   投資中：      ¥{portfolio.current_position_value:,}
   投資枠：      {portfolio.parts_used()}/{config.MAX_PARTS}口
   1口サイズ：   ¥{portfolio.lot_size():,}
-  累計入金額：  ¥{portfolio.total_deposited:,}
 
 {"=" * 46}
 【市場データ】
