@@ -177,7 +177,7 @@ class EmailNotifier:
 総資本：        ¥{portfolio.total_capital:,}
 使える資金：    ¥{portfolio.available_capital:,}
 投資中の金額：  ¥{portfolio.current_position_value:,}
-投資枠：        {portfolio.parts_used()}/10（残り{portfolio.parts_available()}枠）
+投資枠：        {portfolio.parts_used()}/{config.MAX_PARTS}口（残り{portfolio.parts_available()}枠）
 累計取引回数：  {portfolio.trade_count}回
 最終更新：      {updated}
 

@@ -39,6 +39,14 @@ def main():
     print(f"日経: {data.nikkei_close:.0f} ({data.nikkei_change:+.0f}) / S&P500: {data.sp500_close:.2f} ({data.sp500_change:+.2f}) / CME先物: {data.cme_nikkei_close:.0f} ({data.cme_nikkei_change:+.0f}) / VIX: {data.vix_close:.2f} / 米10年債: {data.us10y_rate:.2f}%")
 
     rule_signal = generate_rule_signal(data)
+    if rule_signal.action == "BUY" and portfolio.at_max_parts():
+        from src.signal_engine import RuleSignal
+        rule_signal = RuleSignal(
+            action="HOLD",
+            amount=0,
+            reason=f"BUYシグナルだが保有が上限（{config.MAX_PARTS}口）に達しているため様子見。",
+            confidence=rule_signal.confidence,
+        )
     print(f"ルールシグナル: {rule_signal.action} ¥{rule_signal.amount:,} (確信度: {rule_signal.confidence * 100:.0f}%)")
 
     print("ニュース収集中...")

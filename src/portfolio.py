@@ -68,7 +68,10 @@ class Portfolio:
         self.save()
 
     def parts_used(self) -> int:
-        return int(self.current_position_value / (self.total_capital / 10))
+        return int(self.current_position_value / config.NORMAL_TRADE)
 
     def parts_available(self) -> int:
-        return 10 - self.parts_used()
+        return config.MAX_PARTS - self.parts_used()
+
+    def at_max_parts(self) -> bool:
+        return self.parts_used() >= config.MAX_PARTS
