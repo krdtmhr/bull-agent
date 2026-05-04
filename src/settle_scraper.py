@@ -12,7 +12,7 @@ import os
 import config
 
 MAX_ATTEMPTS = 2
-MAIL_WAIT_SEC = 30  # 認証メール到着を待つ最大秒数
+MAIL_WAIT_SEC = 45  # 認証メール到着を待つ最大秒数
 
 
 def _get_emoji_names_from_gmail() -> tuple[str, str]:
@@ -58,7 +58,6 @@ def _get_emoji_names_from_gmail() -> tuple[str, str]:
                             except Exception:
                                 body_html = raw.decode("utf-8", errors="replace")
                     body = body_plain or body_html
-                    # 最初のメールのみデバッグ出力
                     if i == 0:
                         print(f"  [DBG] MIME: {parts_info}")
                         print(f"  [DBG] body先頭100文字: {repr(body[:100])}")
@@ -74,6 +73,43 @@ def _get_emoji_names_from_gmail() -> tuple[str, str]:
             print(f"  メール確認エラー: {e}")
         time.sleep(5)
     raise TimeoutError(f"{MAIL_WAIT_SEC}秒待っても認証メールが届きませんでした")
+
+
+def _build_emoji_map_from_page(page) -> dict:
+    """
+    altFlg=1 + eventType=init でページ再送信し、emojiAltClick の onclick 属性から
+    {絵柄名: index文字列} のマッピングを構築する。
+    成功時は dict（空の可能性あり）、失敗時は {} を返す。
+    """
+    from playwright.sync_api import TimeoutError as PWTimeout
+
+    try:
+        page.evaluate("document.querySelector('[name=altFlg]').value = '1'")
+        page.evaluate("document.querySelector('[name=eventType]').value = 'init'")
+        page.evaluate("SotpLoginForm.submit()")
+        page.wait_for_load_state("networkidle", timeout=15000)
+    except Exception as e:
+        print(f"  altFlg=1再送信失敗: {e}")
+        return {}
+
+    page.screenshot(path="screenshots/rakuten_2fa_alt.png")
+    print(f"  altFlg=1ページURL: {page.url}")
+
+    # emojiAltClick('emoji_N', 'N', '...gif', '絵柄名') からマッピングを抽出
+    emoji_map = page.evaluate(r"""
+        () => {
+            const buttons = document.querySelectorAll('button[id^="emoji_"]');
+            const map = {};
+            buttons.forEach(btn => {
+                const oc = btn.getAttribute('onclick') || '';
+                const m = oc.match(/emojiAltClick\([^,]+,\s*'(\d+)',[^,]+,\s*'([^']+)'\)/);
+                if (m) map[m[2]] = m[1];
+            });
+            return map;
+        }
+    """)
+    print(f"  絵文字マッピング(altFlg=1): {emoji_map}")
+    return emoji_map
 
 
 def _do_login(page, login_id: str, password: str) -> bool:
@@ -103,13 +139,11 @@ def _do_login(page, login_id: str, password: str) -> bool:
             continue
     if not filled:
         raise RuntimeError("ログインIDフィールドが見つかりませんでした")
-    # パスワード: type="password" のフィールド
+
     page.locator('input[type="password"]').first.fill(password)
-    # 入力後スクショ（フィールドに値が入ったか確認用）
     page.screenshot(path="screenshots/rakuten_login_filled.png")
     print("  フィールド入力後 スクショ保存")
 
-    # ログインボタンをクリック
     for btn_sel in (
         'button#login-btn',
         'button[type="submit"]',
@@ -121,77 +155,68 @@ def _do_login(page, login_id: str, password: str) -> bool:
         except Exception:
             continue
 
-    # ② ログイン後リダイレクト待ち（実際のURLはmember.rakuten-sec.co.jp/app/Login.do）
+    # ② ログイン後リダイレクト待ち
     try:
         page.wait_for_url("**/member.rakuten-sec.co.jp/**", timeout=15000)
     except PWTimeout:
-        # 遷移なし → ログイン失敗 or 2FAなし
         print(f"  ログイン後URL（遷移なし）: {page.url}")
         return True
 
-    # ③ 2FAページのスクショ保存（デバッグ用）
+    # ③ 2FAページか確認
     page.screenshot(path="screenshots/rakuten_2fa.png")
     print(f"  2FAページURL: {page.url}")
-    print("  2FAページ スクショ保存")
 
-    # 2FAページか確認（絵柄画像があるか）
-    if page.locator('img[alt]').count() == 0:
+    if page.locator('button[id^="emoji_"]').count() == 0:
         print("  2FAなし、ダッシュボードへ遷移済み")
         return True
+
+    print("  2FAページ検出: 絵柄選択が必要")
 
     # HTMLソース保存（デバッグ用）
     with open("screenshots/rakuten_2fa_source.html", "w", encoding="utf-8") as f:
         f.write(page.content())
-    # 全imgのalt/title/onclick属性をログ出力
-    imgs = page.evaluate("""
-        () => Array.from(document.querySelectorAll('img')).map(img => ({
-            alt: img.alt, title: img.title, id: img.id,
-            className: img.className.substring(0, 40),
-            onclick: (img.onclick || '').toString().substring(0, 80),
-            parentTag: img.parentElement ? img.parentElement.tagName : '',
-            parentOnclick: (img.parentElement && img.parentElement.onclick
-                ? img.parentElement.onclick.toString().substring(0, 80) : '')
-        }))
-    """)
-    print(f"  [DBG] 2FAページ img一覧: {imgs}")
 
-    # 認証メールから絵柄名を取得
+    # ④ altFlg=1 で再送信して絵柄名→インデックスのマッピングを取得
+    emoji_map = _build_emoji_map_from_page(page)
+
+    # ⑤ 新しい認証メールから絵柄名を取得（altFlg=1再送後のメール）
     emoji1, emoji2 = _get_emoji_names_from_gmail()
     print(f"  認証絵柄: {emoji1} → {emoji2}")
 
-    # ④ 絵柄をクリック（alt属性で探す）
-    for emoji in (emoji1, emoji2):
-        clicked = False
-        for selector in (
-            f'img[alt="{emoji}"]',
-            f'[title="{emoji}"]',
-            f'[aria-label="{emoji}"]',
-            f'[data-name="{emoji}"]',
-        ):
-            try:
-                page.click(selector, timeout=3000)
-                clicked = True
-                break
-            except Exception:
-                continue
-        if not clicked:
-            raise ValueError(f"絵柄「{emoji}」がページ上で見つかりませんでした")
+    # ⑥ 絵柄をクリック
+    if emoji_map:
+        for emoji in (emoji1, emoji2):
+            idx = emoji_map.get(emoji)
+            if idx is None:
+                available = list(emoji_map.keys())
+                raise ValueError(
+                    f"絵柄「{emoji}」がマッピングに見つかりません。利用可能: {available}"
+                )
+            page.click(f'#emoji_{idx}', timeout=3000)
+            print(f"  絵柄「{emoji}」クリック完了 (index={idx})")
+    else:
+        # フォールバック: emojiAltClickが使えない場合、HTMLソースを保存して失敗
+        with open("screenshots/rakuten_2fa_alt_source.html", "w", encoding="utf-8") as f:
+            f.write(page.content())
+        raise ValueError(
+            "altFlg=1でのマッピング取得失敗。"
+            "rakuten_2fa_alt_source.html を確認してください。"
+        )
 
-    # ⑤ 認証ボタンをクリック
-    page.click('input[type="submit"], button:has-text("認証する")', timeout=5000)
+    # ⑦ 認証ボタンをクリック
+    page.locator('input[value="認証する"]').click(timeout=5000)
     page.wait_for_load_state("networkidle", timeout=15000)
+
+    page.screenshot(path="screenshots/rakuten_2fa_after.png")
+    print(f"  2FA認証後URL: {page.url}")
     return True
 
 
 def _get_fund_settlement(page) -> int | None:
     """投信取引履歴から直近の解約受取金額を取得する。"""
-    from playwright.sync_api import TimeoutError as PWTimeout
-
-    # ログイン後トップページのスクショ
     page.screenshot(path="screenshots/rakuten_after_login.png")
     print(f"  ログイン後URL: {page.url}")
 
-    # 投信取引履歴リンクをクリックして辿る
     for link_text in ("取引履歴", "投資信託", "投信", "保有商品"):
         try:
             page.get_by_text(link_text, exact=False).first.click(timeout=5000)
@@ -201,13 +226,10 @@ def _get_fund_settlement(page) -> int | None:
             continue
     page.wait_for_load_state("networkidle", timeout=15000)
 
-    # デバッグ用スクリーンショット保存
     os.makedirs("screenshots", exist_ok=True)
     page.screenshot(path="screenshots/rakuten_history.png")
     print("  デバッグ用スクショ保存: screenshots/rakuten_history.png")
 
-    # ページ上のテキストから解約受取金額を探す
-    # 「解約」「受取」「金額」などのキーワード周辺の数字を取得
     content = page.content()
     patterns = [
         r'受取金額[^\d]*([0-9,]+)',
