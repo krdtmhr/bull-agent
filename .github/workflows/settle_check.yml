@@ -38,6 +38,7 @@ jobs:
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           GMAIL_2FA_USER: ${{ secrets.GMAIL_2FA_USER }}
           GMAIL_2FA_PASSWORD: ${{ secrets.GMAIL_2FA_PASSWORD }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
       - name: 状態をリポジトリに保存
         if: always()
@@ -45,7 +46,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git add portfolio_state.json screenshots/ screenshots/rakuten_2fa_source.html 2>/dev/null || true
+          git add portfolio_state.json screenshots/ 2>/dev/null || true
           git diff --staged --quiet || git commit -m "デバッグスクショ・状態更新 [skip ci]"
           git pull --rebase origin master
           git push

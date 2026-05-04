@@ -1,6 +1,6 @@
 """
 楽天証券にログインして投信の直近約定金額を取得する。
-2FA: メール認証（絵柄選択）をGmailから自動解析。
+2FA: メール認証（絵柄選択）をGmailで自動解析し、GPT-4o Visionで絵柄を識別。
 最大2回試行（3回でロック）。
 """
 import imaplib
@@ -75,41 +75,63 @@ def _get_emoji_names_from_gmail() -> tuple[str, str]:
     raise TimeoutError(f"{MAIL_WAIT_SEC}秒待っても認証メールが届きませんでした")
 
 
-def _build_emoji_map_from_page(page) -> dict:
-    """
-    altFlg=1 + eventType=init でページ再送信し、emojiAltClick の onclick 属性から
-    {絵柄名: index文字列} のマッピングを構築する。
-    成功時は dict（空の可能性あり）、失敗時は {} を返す。
-    """
-    from playwright.sync_api import TimeoutError as PWTimeout
+def _identify_emoji_indices_with_vision(page, emoji1: str, emoji2: str) -> tuple[int, int]:
+    """GPT-4o Visionで2FAページの絵柄ボタンを識別し、ボタンインデックスを返す。"""
+    import base64
+    import json
+    import openai
 
-    try:
-        page.evaluate("document.querySelector('[name=altFlg]').value = '1'")
-        page.evaluate("document.querySelector('[name=eventType]').value = 'init'")
-        page.evaluate("SotpLoginForm.submit()")
-        page.wait_for_load_state("networkidle", timeout=15000)
-    except Exception as e:
-        print(f"  altFlg=1再送信失敗: {e}")
-        return {}
+    # 絵文字ボタンエリアをスクショ
+    emoji_area = page.locator('.pcmm_emoji-img__block')
+    emoji_area.screenshot(path="screenshots/emoji_buttons.png")
+    print("  絵文字エリアスクショ保存: screenshots/emoji_buttons.png")
 
-    page.screenshot(path="screenshots/rakuten_2fa_alt.png")
-    print(f"  altFlg=1ページURL: {page.url}")
+    with open("screenshots/emoji_buttons.png", "rb") as f:
+        img_b64 = base64.b64encode(f.read()).decode()
 
-    # emojiAltClick('emoji_N', 'N', '...gif', '絵柄名') からマッピングを抽出
-    emoji_map = page.evaluate(r"""
-        () => {
-            const buttons = document.querySelectorAll('button[id^="emoji_"]');
-            const map = {};
-            buttons.forEach(btn => {
-                const oc = btn.getAttribute('onclick') || '';
-                const m = oc.match(/emojiAltClick\([^,]+,\s*'(\d+)',[^,]+,\s*'([^']+)'\)/);
-                if (m) map[m[2]] = m[1];
-            });
-            return map;
-        }
-    """)
-    print(f"  絵文字マッピング(altFlg=1): {emoji_map}")
-    return emoji_map
+    client = openai.OpenAI(api_key=config.OPENAI_API_KEY)
+    prompt = (
+        f"この画像には絵文字ボタンが左から右に10個（インデックス0〜9）並んでいます。\n"
+        f"「{emoji1}」と「{emoji2}」の絵柄に対応するボタンのインデックスを教えてください。\n"
+        f"JSONのみ返してください: {{\"idx1\": N, \"idx2\": M}}"
+    )
+
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[{
+            "role": "user",
+            "content": [
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/png;base64,{img_b64}",
+                        "detail": "high"
+                    }
+                },
+                {"type": "text", "text": prompt}
+            ]
+        }],
+        max_tokens=150
+    )
+
+    result_text = response.choices[0].message.content.strip()
+    print(f"  GPT-4o識別結果: {result_text}")
+
+    m = re.search(r'\{[^}]+\}', result_text)
+    if not m:
+        raise ValueError(f"GPT-4oから有効なJSONが得られませんでした: {result_text}")
+
+    data = json.loads(m.group())
+    idx1 = int(data['idx1'])
+    idx2 = int(data['idx2'])
+
+    if not (0 <= idx1 <= 9 and 0 <= idx2 <= 9):
+        raise ValueError(f"インデックス範囲外: idx1={idx1}, idx2={idx2}")
+    if idx1 == idx2:
+        raise ValueError(f"同じインデックスが返されました: {idx1}")
+
+    print(f"  識別完了: 「{emoji1}」→emoji_{idx1}, 「{emoji2}」→emoji_{idx2}")
+    return idx1, idx2
 
 
 def _do_login(page, login_id: str, password: str) -> bool:
@@ -176,32 +198,18 @@ def _do_login(page, login_id: str, password: str) -> bool:
     with open("screenshots/rakuten_2fa_source.html", "w", encoding="utf-8") as f:
         f.write(page.content())
 
-    # ④ altFlg=1 で再送信して絵柄名→インデックスのマッピングを取得
-    emoji_map = _build_emoji_map_from_page(page)
-
-    # ⑤ 新しい認証メールから絵柄名を取得（altFlg=1再送後のメール）
+    # ④ Gmail から絵柄名を取得（ログイン時に送信済みのメール）
     emoji1, emoji2 = _get_emoji_names_from_gmail()
     print(f"  認証絵柄: {emoji1} → {emoji2}")
 
-    # ⑥ 絵柄をクリック
-    if emoji_map:
-        for emoji in (emoji1, emoji2):
-            idx = emoji_map.get(emoji)
-            if idx is None:
-                available = list(emoji_map.keys())
-                raise ValueError(
-                    f"絵柄「{emoji}」がマッピングに見つかりません。利用可能: {available}"
-                )
-            page.click(f'#emoji_{idx}', timeout=3000)
-            print(f"  絵柄「{emoji}」クリック完了 (index={idx})")
-    else:
-        # フォールバック: emojiAltClickが使えない場合、HTMLソースを保存して失敗
-        with open("screenshots/rakuten_2fa_alt_source.html", "w", encoding="utf-8") as f:
-            f.write(page.content())
-        raise ValueError(
-            "altFlg=1でのマッピング取得失敗。"
-            "rakuten_2fa_alt_source.html を確認してください。"
-        )
+    # ⑤ GPT-4o Vision でどのボタンか識別
+    idx1, idx2 = _identify_emoji_indices_with_vision(page, emoji1, emoji2)
+
+    # ⑥ 絵柄ボタンをクリック
+    page.click(f'#emoji_{idx1}', timeout=3000)
+    print(f"  「{emoji1}」クリック完了 (emoji_{idx1})")
+    page.click(f'#emoji_{idx2}', timeout=3000)
+    print(f"  「{emoji2}」クリック完了 (emoji_{idx2})")
 
     # ⑦ 認証ボタンをクリック
     page.locator('input[value="認証する"]').click(timeout=5000)
