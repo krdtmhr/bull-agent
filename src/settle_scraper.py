@@ -29,7 +29,7 @@ def _get_emoji_names_from_gmail() -> tuple[str, str]:
             conn = imaplib.IMAP4_SSL("imap.gmail.com", 993)
             conn.login(gmail_user, gmail_pass)
             conn.select("INBOX")
-            _, ids = conn.search(None, f'(FROM "rakuten-sec.co.jp" SINCE {today_str})')
+            _, ids = conn.search(None, f'(FROM "service@rakuten-sec.co.jp" SUBJECT "ログイン追加認証" SINCE {today_str})')
             print(f"  メール検索結果件数: {len(ids[0].split()) if ids[0] else 0}")
             if ids[0]:
                 # 最新から順に2FA認証メール（絵文字コード入り）を探す
