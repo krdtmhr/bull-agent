@@ -2,3 +2,4 @@ yfinance
 openai
 python-dotenv
 tweepy
+playwright
