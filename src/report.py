@@ -52,13 +52,26 @@ def main():
     lot = portfolio.lot_size()
 
     if action == "BUY":
-        portfolio.record_trade("BUY", lot)
-        trade_summary = f"¥{lot:,} 買い注文を実行しました（1口）"
+        if portfolio.at_max_parts():
+            action = "HOLD"
+            trade_summary = f"⚠️ 最大口数（{config.MAX_PARTS}口）に達しているため買い注文できませんでした"
+        elif not portfolio.can_buy(lot):
+            action = "HOLD"
+            trade_summary = f"⚠️ 資金不足のため買い注文できませんでした（必要：¥{lot:,} / 空き：¥{portfolio.available_capital:,}）"
+        else:
+            portfolio.record_trade("BUY", lot)
+            trade_summary = f"¥{lot:,} 買い注文を実行しました（1口）"
     elif action == "SELL":
-        sell_parts = portfolio.last_sell_parts
-        sell_amount = sell_parts * lot
-        portfolio.record_trade("SELL", sell_amount)
-        trade_summary = f"{sell_parts}口（¥{sell_amount:,}）解約を実行しました"
+        if portfolio.parts_used() == 0:
+            action = "HOLD"
+            trade_summary = "⚠️ 保有口数がないため解約できませんでした"
+        else:
+            specified = result.get("sell_parts", 0)
+            sell_parts = specified if specified > 0 else (portfolio.last_sell_parts or portfolio.parts_used())
+            sell_parts = min(sell_parts, portfolio.parts_used())
+            sell_amount = sell_parts * lot
+            portfolio.record_trade("SELL", sell_amount)
+            trade_summary = f"{sell_parts}口（¥{sell_amount:,}）解約を実行しました"
     else:
         trade_summary = "本日は様子見（売買なし）"
 

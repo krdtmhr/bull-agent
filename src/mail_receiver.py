@@ -34,18 +34,18 @@ def _decode_subject(subject_raw: str) -> str:
 
 
 def parse_subject(subject: str) -> str:
-    """
-    件名から action を解析する。
-    BUY  → "BUY"
-    SELL → "SELL"
-    HOLD → "HOLD"
-    口数・金額はシステム側で計算するため、件名には action のみ。
-    """
     upper = subject.strip().upper()
     for kw in ("BUY", "SELL", "HOLD"):
         if kw in upper:
             return kw
     return "HOLD"
+
+
+def parse_sell_parts(subject: str) -> int:
+    """件名から売り口数を解析する。"SELL 2" → 2、"SELL" → 0（= last_sell_parts を使う）"""
+    import re
+    match = re.search(r'SELL\s+(\d+)', subject.strip().upper())
+    return int(match.group(1)) if match else 0
 
 
 def fetch_trade_screenshot(target_date: Optional[date] = None) -> Optional[dict]:
@@ -103,8 +103,10 @@ def fetch_trade_screenshot(target_date: Optional[date] = None) -> Optional[dict]
                     f.write(part.get_payload(decode=True))
                 break
 
+        sell_parts = parse_sell_parts(subject) if action == "SELL" else 0
         found = {
             "action": action,
+            "sell_parts": sell_parts,  # SELL 2 → 2、指定なし → 0
             "screenshot": screenshot_path,
             "subject": subject,
             "received_at": received_at,

@@ -55,19 +55,13 @@ def _do_login(page, login_id: str, password: str) -> bool:
     page.screenshot(path="screenshots/rakuten_login.png")
     print("  ログインページ スクショ保存")
 
-    # フィールド名を複数パターンで試す
-    for id_sel in ('input[name="loginid"]', 'input[name="userid"]', 'input[id*="login"]'):
-        try:
-            page.fill(id_sel, login_id, timeout=3000)
-            break
-        except Exception:
-            continue
-    for pw_sel in ('input[name="passwd"]', 'input[name="password"]', 'input[type="password"]'):
-        try:
-            page.fill(pw_sel, password, timeout=3000)
-            break
-        except Exception:
-            continue
+    # ログインID: type="text" の最初のフィールド
+    page.locator('input[type="text"]').first.fill(login_id)
+    # パスワード: type="password" のフィールド
+    page.locator('input[type="password"]').first.fill(password)
+    # 入力後スクショ（フィールドに値が入ったか確認用）
+    page.screenshot(path="screenshots/rakuten_login_filled.png")
+    print("  フィールド入力後 スクショ保存")
 
     # ログインボタンをクリック
     for btn_sel in (
@@ -124,11 +118,18 @@ def _get_fund_settlement(page) -> int | None:
     """投信取引履歴から直近の解約受取金額を取得する。"""
     from playwright.sync_api import TimeoutError as PWTimeout
 
-    # 投信取引履歴ページへ遷移
-    page.goto(
-        "https://www.rakuten-sec.co.jp/web/fund/history/",
-        timeout=20000,
-    )
+    # ログイン後トップページのスクショ
+    page.screenshot(path="screenshots/rakuten_after_login.png")
+    print(f"  ログイン後URL: {page.url}")
+
+    # 投信取引履歴リンクをクリックして辿る
+    for link_text in ("取引履歴", "投資信託", "投信", "保有商品"):
+        try:
+            page.get_by_text(link_text, exact=False).first.click(timeout=5000)
+            page.wait_for_load_state("networkidle", timeout=10000)
+            break
+        except Exception:
+            continue
     page.wait_for_load_state("networkidle", timeout=15000)
 
     # デバッグ用スクリーンショット保存
