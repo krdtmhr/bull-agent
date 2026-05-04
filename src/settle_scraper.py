@@ -89,16 +89,23 @@ def _do_login(page, login_id: str, password: str) -> bool:
         except Exception:
             continue
 
-    # ② 2FAページ待ち
+    # ② ログイン後リダイレクト待ち（実際のURLはmember.rakuten-sec.co.jp/app/Login.do）
     try:
-        page.wait_for_url("**/login_add**", timeout=15000)
+        page.wait_for_url("**/member.rakuten-sec.co.jp/**", timeout=15000)
     except PWTimeout:
-        # 2FAなしで直接ログインできた場合
+        # 遷移なし → ログイン失敗 or 2FAなし
+        print(f"  ログイン後URL（遷移なし）: {page.url}")
         return True
 
     # ③ 2FAページのスクショ保存（デバッグ用）
     page.screenshot(path="screenshots/rakuten_2fa.png")
+    print(f"  2FAページURL: {page.url}")
     print("  2FAページ スクショ保存")
+
+    # 2FAページか確認（絵柄画像があるか）
+    if page.locator('img[alt]').count() == 0:
+        print("  2FAなし、ダッシュボードへ遷移済み")
+        return True
 
     # 認証メールから絵柄名を取得
     emoji1, emoji2 = _get_emoji_names_from_gmail()
