@@ -1,0 +1,388 @@
+<html><head><script async="" src="https://bat.bing.com/p/conversions/s/0.8.59"></script><script type="text/javascript" async="" defer="" src="https://r.r10s.jp/com/rat/js/ral-1.10.2.js"></script><script async="" src="https://bat.bing.com/p/conversions/t/52012586"></script><script async="" src="https://bat.bing.com/p/conversions/t/52014240"></script><script type="text/javascript" async="" defer="" src="https://r.r10s.jp/com/rat/js/ral-1.10.2.js"></script><script type="text/javascript" async="" src="https://config-code.usergram.info/UgI7Dg-1/config.js"></script><script type="text/javascript" async="" src="https://s.yimg.jp/images/listing/tool/cv/ytag.js"></script><script type="text/javascript" async="" src="https://s.yimg.jp/images/listing/tool/cv/ytag.js"></script><script type="text/javascript" async="" src="https://s.yimg.jp/images/listing/tool/cv/ytag.js"></script><script type="text/javascript" async="" src="https://s.yimg.jp/images/listing/tool/cv/ytag.js"></script><script type="text/javascript" async="" src="https://s.yimg.jp/images/listing/tool/cv/ytag.js"></script><script type="text/javascript" async="" src="https://s.yimg.jp/images/listing/tool/cv/ytag.js"></script><script type="text/javascript" async="" src="https://s.yimg.jp/images/listing/tool/cv/ytag.js"></script><script type="text/javascript" async="" src="https://s.yimg.jp/images/listing/tool/cv/ytag.js"></script><script type="text/javascript" async="" src="https://bat.bing.com/bat.js"></script><script type="text/javascript" async="" src="https://www.googletagmanager.com/gtag/destination?id=AW-851381165&amp;cx=c&amp;gtm=4e64t1h1"></script><script type="text/javascript" async="" src="https://www.googletagmanager.com/gtag/destination?id=AW-851368373&amp;cx=c&amp;gtm=4e64t1h1"></script><script type="text/javascript" async="" src="https://www.googletagmanager.com/gtag/destination?id=AW-793939290&amp;cx=c&amp;gtm=4e64t1h1"></script><script type="text/javascript" async="" src="https://www.googletagmanager.com/gtag/destination?id=AW-828109783&amp;cx=c&amp;gtm=4e64t1h1"></script><script type="text/javascript" async="" src="https://www.googletagmanager.com/gtag/destination?id=AW-943759665&amp;cx=c&amp;gtm=4e64t1h1"></script><script type="text/javascript" async="" src="https://www.googletagmanager.com/gtag/destination?id=AW-943761825&amp;cx=c&amp;gtm=4e64t1h1"></script><script type="text/javascript" async="" src="//code.usergram.info/js/usergram.js"></script><script async="" src="https://www.googletagmanager.com/gtm.js?id=GTM-5J8CZTV"></script><script type="text/javascript" src="/member/js/jquery.min.js?202604260005"></script>
+<script type="text/javascript" src="/member/js/memberPageJump.js?202604260005"></script>
+<link rel="stylesheet" href="/member/assets/sure/css/sure-pcmm.min.css?202604260005" type="text/css">
+<link rel="stylesheet" href="/member/assets/sure/css/sure-icon.css?202604260005" type="text/css">
+<link rel="stylesheet" href="/member/css/pcmm_emoji/pcmm_emoji.min.css?202604260005" type="text/css">
+
+
+
+<style>
+.err_msg,.error_filed,.success_filed{
+	display:none;
+}
+</style>
+
+<script>
+
+document.ondragstart = function(){return false;};
+
+var reSendFlag = false ;
+var submitFlag = false ;
+
+$(function(){
+	if(!"" == ""){
+		$(".err_msg").css("display","block");
+		$(".success_filed").css("display","none");
+		$(".error_valid").css("display","block");
+		$(".pcmm_emoji-img__block").addClass("pcmm_emoji--is-error");
+	}else{
+		$(".err_msg").css("display","none");
+		$(".success_filed").css("display","block");
+	}
+	
+	SotpLoginForm.selectImageNo1.value = "";
+	SotpLoginForm.selectImageNo2.value = "";
+})
+
+function emojiAltClick(id,index, src, charaWord){
+	if($(".pcmm_emoji-img__1").attr("id") == undefined){
+		$("#" + id).addClass("pcmm_emoji-img__1");
+		$("#select_1").append("<img src=" + src + " class='pcmm_emoji-img--thumb' alt='" + charaWord + "'>");
+		SotpLoginForm.selectImageNo1.value = index;
+	}else if($(".pcmm_emoji-img__2").attr("id") == undefined){
+		if(!$("#" + id).hasClass("pcmm_emoji-img__1")){
+			$("#" + id).addClass("pcmm_emoji-img__2");
+			$("#select_2").append("<img src=" + src + " class='pcmm_emoji-img--thumb' alt='" + charaWord + "'>");
+			SotpLoginForm.selectImageNo2.value = index;
+		}
+	}
+}
+
+function emojiClick(id,index, src){
+	if($(".pcmm_emoji-img__1").attr("id") == undefined){
+		$("#" + id).addClass("pcmm_emoji-img__1");
+		$("#select_1").append("<img src=" + src + " class='pcmm_emoji-img--thumb'>");
+		SotpLoginForm.selectImageNo1.value = index;
+	}else if($(".pcmm_emoji-img__2").attr("id") == undefined){
+		if(!$("#" + id).hasClass("pcmm_emoji-img__1")){
+			$("#" + id).addClass("pcmm_emoji-img__2");
+			$("#select_2").append("<img src=" + src + " class='pcmm_emoji-img--thumb'>");
+			SotpLoginForm.selectImageNo2.value = index;
+		}
+	}
+}
+
+function clearEmoji(){
+	$(".pcmm_emoji-img__1").removeClass("pcmm_emoji-img__1");
+	$(".pcmm_emoji-img__2").removeClass("pcmm_emoji-img__2");
+	$("#select_1").empty();
+	$("#select_2").empty();
+	SotpLoginForm.selectImageNo1.value = "";
+	SotpLoginForm.selectImageNo2.value = "";
+}
+
+function check(){
+	
+	if( submitFlag ) {
+		return false ;
+	}
+	
+	if($("#selectImageNo1").val() == "" || $("#selectImageNo2").val() == ""){
+		$(".pcmm_emoji-img__block").addClass("pcmm_emoji--is-error");
+		$(".error_filed").css("display","block");
+		$(".success_filed").css("display","none");
+		$(".err_msg").css("display","none");
+		return false;
+	}
+	
+	submitFlag = true ;
+	
+	SotpLoginForm.eventType.value='check';
+	SotpLoginForm.submit();
+}
+
+function reSend(){
+	
+	if( reSendFlag ) {
+		return false ;
+	}
+	reSendFlag = true ;
+	
+	SotpLoginForm.eventType.value='init';
+	SotpLoginForm.submit();
+	
+}
+
+// F5禁止
+window.document.onkeydown = function() {
+	if (event.keyCode == 116) {
+		return false;
+	}
+}
+
+</script>
+
+
+
+
+
+  
+    <meta http-equiv="Content-Type" content="text/html; charset=EUC-JP">
+    <title>ログイン認証 | 楽天証券[PC]</title>
+  <script src="https://bat.bing.com/p/action/52014240.js" type="text/javascript" async="" data-ueto="ueto_1ce6f220c0"></script><script src="https://bat.bing.com/p/action/52012586.js" type="text/javascript" async="" data-ueto="ueto_94042c179a"></script><script type="text/javascript" async="" src="https://googleads.g.doubleclick.net/pagead/viewthroughconversion/943761825/?random=1777906624739&amp;cv=11&amp;fst=1777906624739&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;gtm=45be64t1h1v892498513z879187747za20gzb79187747zd79187747xea&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115938466~115938468~116363098~118128922&amp;u_w=1280&amp;u_h=720&amp;url=https%3A%2F%2Fmember.rakuten-sec.co.jp%2Fapp%2FLogin.do&amp;ref=https%3A%2F%2Fwww.rakuten-sec.co.jp%2F&amp;rcb=10&amp;frm=0&amp;tiba=%E3%83%AD%E3%82%B0%E3%82%A4%E3%83%B3%E8%AA%8D%E8%A8%BC%20%7C%20%E6%A5%BD%E5%A4%A9%E8%A8%BC%E5%88%B8%5BPC%5D&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=93081924.1777906612&amp;uaa=x86&amp;uab=64&amp;uafvl=HeadlessChrome%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0%7CChromium%3B147.0.7727.15&amp;uamb=0&amp;uam=&amp;uap=Windows&amp;uapv=10.0&amp;uaw=0&amp;_tu=CA&amp;rfmt=3&amp;fmt=4"></script><script type="text/javascript" async="" src="https://googleads.g.doubleclick.net/pagead/viewthroughconversion/828109783/?random=1777906624750&amp;cv=11&amp;fst=1777906624750&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;gtm=45be64t1h1v9181627778z879187747za20gzb79187747zd79187747xea&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115938466~115938468~116363098&amp;u_w=1280&amp;u_h=720&amp;url=https%3A%2F%2Fmember.rakuten-sec.co.jp%2Fapp%2FLogin.do&amp;ref=https%3A%2F%2Fwww.rakuten-sec.co.jp%2F&amp;rcb=13&amp;frm=0&amp;tiba=%E3%83%AD%E3%82%B0%E3%82%A4%E3%83%B3%E8%AA%8D%E8%A8%BC%20%7C%20%E6%A5%BD%E5%A4%A9%E8%A8%BC%E5%88%B8%5BPC%5D&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=93081924.1777906612&amp;uaa=x86&amp;uab=64&amp;uafvl=HeadlessChrome%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0%7CChromium%3B147.0.7727.15&amp;uamb=0&amp;uam=&amp;uap=Windows&amp;uapv=10.0&amp;uaw=0&amp;_tu=CA&amp;rfmt=3&amp;fmt=4"></script><script type="text/javascript" async="" src="https://googleads.g.doubleclick.net/pagead/viewthroughconversion/943759665/?random=1777906624767&amp;cv=11&amp;fst=1777906624767&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;gtm=45be64t1h1z879187747za20gzb79187747zd79187747xea&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115938466~115938469~116363098&amp;u_w=1280&amp;u_h=720&amp;url=https%3A%2F%2Fmember.rakuten-sec.co.jp%2Fapp%2FLogin.do&amp;ref=https%3A%2F%2Fwww.rakuten-sec.co.jp%2F&amp;rcb=4&amp;frm=0&amp;tiba=%E3%83%AD%E3%82%B0%E3%82%A4%E3%83%B3%E8%AA%8D%E8%A8%BC%20%7C%20%E6%A5%BD%E5%A4%A9%E8%A8%BC%E5%88%B8%5BPC%5D&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=93081924.1777906612&amp;uaa=x86&amp;uab=64&amp;uafvl=HeadlessChrome%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0%7CChromium%3B147.0.7727.15&amp;uamb=0&amp;uam=&amp;uap=Windows&amp;uapv=10.0&amp;uaw=0&amp;_tu=CA&amp;rfmt=3&amp;fmt=4"></script><script type="text/javascript" async="" src="https://googleads.g.doubleclick.net/pagead/viewthroughconversion/793939290/?random=1777906624781&amp;cv=11&amp;fst=1777906624781&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;gtm=45be64t1h1v895926826z879187747za20gzb79187747zd79187747xea&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115938466~115938468~116363098&amp;u_w=1280&amp;u_h=720&amp;url=https%3A%2F%2Fmember.rakuten-sec.co.jp%2Fapp%2FLogin.do&amp;ref=https%3A%2F%2Fwww.rakuten-sec.co.jp%2F&amp;rcb=1&amp;frm=0&amp;tiba=%E3%83%AD%E3%82%B0%E3%82%A4%E3%83%B3%E8%AA%8D%E8%A8%BC%20%7C%20%E6%A5%BD%E5%A4%A9%E8%A8%BC%E5%88%B8%5BPC%5D&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=93081924.1777906612&amp;uaa=x86&amp;uab=64&amp;uafvl=HeadlessChrome%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0%7CChromium%3B147.0.7727.15&amp;uamb=0&amp;uam=&amp;uap=Windows&amp;uapv=10.0&amp;uaw=0&amp;_tu=CA&amp;rfmt=3&amp;fmt=4"></script><script type="text/javascript" async="" src="https://googleads.g.doubleclick.net/pagead/viewthroughconversion/851368373/?random=1777906624792&amp;cv=11&amp;fst=1777906624792&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;gtm=45be64t1h1v9223170647z879187747za20gzb79187747zd79187747xea&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115616986~115938466~115938468~116363098&amp;u_w=1280&amp;u_h=720&amp;url=https%3A%2F%2Fmember.rakuten-sec.co.jp%2Fapp%2FLogin.do&amp;ref=https%3A%2F%2Fwww.rakuten-sec.co.jp%2F&amp;rcb=2&amp;frm=0&amp;tiba=%E3%83%AD%E3%82%B0%E3%82%A4%E3%83%B3%E8%AA%8D%E8%A8%BC%20%7C%20%E6%A5%BD%E5%A4%A9%E8%A8%BC%E5%88%B8%5BPC%5D&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=93081924.1777906612&amp;uaa=x86&amp;uab=64&amp;uafvl=HeadlessChrome%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0%7CChromium%3B147.0.7727.15&amp;uamb=0&amp;uam=&amp;uap=Windows&amp;uapv=10.0&amp;uaw=0&amp;_tu=CA&amp;rfmt=3&amp;fmt=4"></script><script type="text/javascript" src="https://b99.yahoo.co.jp/pagead/conversion_async.js"></script><script type="text/javascript" src="https://b99.yahoo.co.jp/pagead/conversion_async.js"></script><script type="text/javascript" src="https://b99.yahoo.co.jp/pagead/conversion_async.js"></script><script type="text/javascript" src="https://b98.yahoo.co.jp/pagead/conversion_async.js"></script><script type="text/javascript" async="" src="https://googleads.g.doubleclick.net/pagead/viewthroughconversion/851381165/?random=1777906624873&amp;cv=11&amp;fst=1777906624873&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;gtm=45be64t1h1v892549006z879187747za20gzb79187747zd79187747xea&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=0~115938466~115938469~116363098&amp;u_w=1280&amp;u_h=720&amp;url=https%3A%2F%2Fmember.rakuten-sec.co.jp%2Fapp%2FLogin.do&amp;ref=https%3A%2F%2Fwww.rakuten-sec.co.jp%2F&amp;rcb=7&amp;frm=0&amp;tiba=%E3%83%AD%E3%82%B0%E3%82%A4%E3%83%B3%E8%AA%8D%E8%A8%BC%20%7C%20%E6%A5%BD%E5%A4%A9%E8%A8%BC%E5%88%B8%5BPC%5D&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=93081924.1777906612&amp;uaa=x86&amp;uab=64&amp;uafvl=HeadlessChrome%3B147.0.7727.15%7CNot.A%252FBrand%3B8.0.0.0%7CChromium%3B147.0.7727.15&amp;uamb=0&amp;uam=&amp;uap=Windows&amp;uapv=10.0&amp;uaw=0&amp;_tu=CA&amp;rfmt=3&amp;fmt=4"></script></head>
+  <body oncontextmenu="return false;">
+<header class="pcmm_emoji-hed" style="display: flex;min-width: 980px;">
+  <div class="pcmm_emoji-hed__block">
+	<a href="https://www.rakuten-sec.co.jp/" class="pcmm_emoji-hed-logo"><img src="https://member.rakuten-sec.co.jp/member/images/rc-h-logo@2x.png" srcset="https://member.rakuten-sec.co.jp/member/images/rc-h-logo@2x.png 2x,/member/images/rc-h-logo@3x.png 3x" alt="楽天証券" class="pcmm_emoji-hed-logo_img"></a>
+	<ul class="pcmm_emoji-hed-lists">
+      <li class="pcmm_emoji-hed-list"><a href="https://faq.rakuten-sec.co.jp/?query=ログインID・PW" class="pcmm_emoji-hed-list--link">よくあるご質問</a></li>
+      <li class="pcmm_emoji-hed-list"><a href="https://www.rakuten-sec.co.jp/" class="pcmm_emoji-hed-list--link">楽天証券ホーム</a></li>
+    </ul>
+  </div>
+</header>
+<div class="pcmm_emoji-heading" style="display: flex;min-width: 980px;">
+  <div class="pcmm_emoji-flex">
+    <h1 class="pcmm-typo--heading-lv1 pcmm--is-clr-font-white pcmm_emoji-typo--h1">総合口座ログイン(追加認証)</h1>
+    <a href="https://www.rakuten-sec.co.jp/web/security/add_authentication/" class="pcmm-typo--regular-lv4  pcmm_emoji-heading-link" target="_blank" rel="noopener noreferrer">
+      <i class="rex-icon-help-outline pcmm-ico pcmm-ico--small pcmm_emoji-heading-ico"></i>画像認証でお困りの方</a>
+  </div>
+</div>
+<main class="pcmm_emoji-main">
+  <div class="pcmm_emoji-main__panel">
+  
+    <div class="pcmm_emoji-art pcmm_emoji--is-success success_filed" style="display: block;">
+      <p class="pcmm_emoji-art__txt">
+        <i class="rex-icon-check pcmm-ico"></i>k*****r@gmail.com に認証コードを送信しました（送信日時：2026/05/04 23:57）
+      </p>
+    </div>
+    <div class="pcmm_emoji-art pcmm_emoji--is-error error_filed">
+      <p class="pcmm_emoji-art__txt">
+        <i class="rex-icon-warning-outline pcmm-ico"></i>選択いただいた認証コードが正しくありません。ご確認のうえ再度選択してください。
+      </p>
+    </div>
+    <div class="pcmm_emoji-art pcmm_emoji--is-error err_msg" style="display: none;">
+      <p class="pcmm_emoji-art__txt">
+        <i class="rex-icon-warning-outline pcmm-ico"></i>
+      </p>
+    </div>
+    
+    <div class="mbody"><!-- 編集可能領域 home/H000001-001-01.html -->
+<div class="editable-area">
+
+<p class="pcmm-typo--regular-lv5 pcmm-typo--bold">メールをご確認いただき、記載されている認証コードの画像を順番に選択してください。<br><span class="pcmm--is-dis-inline pcmm--is-clr-font-danger">認証に3回連続で失敗した場合は、口座がロックされますので、入力ミスにご注意ください。</span></p>
+
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-5J8CZTV');</script>
+<!-- End Google Tag Manager -->
+
+
+
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-5J8CZTV"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+</div><!-- /.editable-area -->
+<!-- /編集可能領域 -->
+</div>
+    <p class="pcmm_emoji-error error_filed error_valid"><i class="rex-icon-warning-filled pcmm-ico"></i>認証コードの画像を選択してください</p> 
+    <div class="pcmm_emoji-img__block">
+      
+
+		
+				
+					
+				
+				
+				
+		      <button class="pcmm_emoji-img" id="emoji_0" onclick="emojiClick('emoji_0','0','/sotp/v200/assets/emoji/conv/20260503/gif/1F917.gif')">
+       <img src="/sotp/v200/assets/emoji/conv/20260503/gif/1F917.gif" class="pcmm_emoji-img--thumb">
+      </button>
+				
+				
+      
+
+		
+				
+					
+				
+				
+				
+		      <button class="pcmm_emoji-img" id="emoji_1" onclick="emojiClick('emoji_1','1','/sotp/v200/assets/emoji/conv/20260503/gif/1F6C2.gif')">
+       <img src="/sotp/v200/assets/emoji/conv/20260503/gif/1F6C2.gif" class="pcmm_emoji-img--thumb">
+      </button>
+				
+				
+      
+
+		
+				
+					
+				
+				
+				
+		      <button class="pcmm_emoji-img" id="emoji_2" onclick="emojiClick('emoji_2','2','/sotp/v200/assets/emoji/conv/20260503/gif/1F690.gif')">
+       <img src="/sotp/v200/assets/emoji/conv/20260503/gif/1F690.gif" class="pcmm_emoji-img--thumb">
+      </button>
+				
+				
+      
+
+		
+				
+					
+				
+				
+				
+		      <button class="pcmm_emoji-img" id="emoji_3" onclick="emojiClick('emoji_3','3','/sotp/v200/assets/emoji/conv/20260503/gif/1FA90.gif')">
+       <img src="/sotp/v200/assets/emoji/conv/20260503/gif/1FA90.gif" class="pcmm_emoji-img--thumb">
+      </button>
+				
+				
+      
+
+		
+				
+					
+				
+				
+				
+		      <button class="pcmm_emoji-img" id="emoji_4" onclick="emojiClick('emoji_4','4','/sotp/v200/assets/emoji/conv/20260503/gif/1F37F.gif')">
+       <img src="/sotp/v200/assets/emoji/conv/20260503/gif/1F37F.gif" class="pcmm_emoji-img--thumb">
+      </button>
+				
+				
+      
+
+		
+				
+					
+				
+				
+				
+		      <button class="pcmm_emoji-img" id="emoji_5" onclick="emojiClick('emoji_5','5','/sotp/v200/assets/emoji/conv/20260503/gif/1F69C.gif')">
+       <img src="/sotp/v200/assets/emoji/conv/20260503/gif/1F69C.gif" class="pcmm_emoji-img--thumb">
+      </button>
+				
+				
+      
+
+		
+				
+					
+				
+				
+				
+		      <button class="pcmm_emoji-img" id="emoji_6" onclick="emojiClick('emoji_6','6','/sotp/v200/assets/emoji/conv/20260503/gif/6A.gif')">
+       <img src="/sotp/v200/assets/emoji/conv/20260503/gif/6A.gif" class="pcmm_emoji-img--thumb">
+      </button>
+				
+				
+      
+
+		
+				
+					
+				
+				
+				
+		      <button class="pcmm_emoji-img" id="emoji_7" onclick="emojiClick('emoji_7','7','/sotp/v200/assets/emoji/conv/20260503/gif/1F402.gif')">
+       <img src="/sotp/v200/assets/emoji/conv/20260503/gif/1F402.gif" class="pcmm_emoji-img--thumb">
+      </button>
+				
+				
+      
+
+		
+				
+					
+				
+				
+				
+		      <button class="pcmm_emoji-img" id="emoji_8" onclick="emojiClick('emoji_8','8','/sotp/v200/assets/emoji/conv/20260503/gif/1FA9B.gif')">
+       <img src="/sotp/v200/assets/emoji/conv/20260503/gif/1FA9B.gif" class="pcmm_emoji-img--thumb">
+      </button>
+				
+				
+      
+
+		
+				
+					
+				
+				
+				
+		      <button class="pcmm_emoji-img" id="emoji_9" onclick="emojiClick('emoji_9','9','/sotp/v200/assets/emoji/conv/20260503/gif/1F3CD.gif')">
+       <img src="/sotp/v200/assets/emoji/conv/20260503/gif/1F3CD.gif" class="pcmm_emoji-img--thumb">
+      </button>
+				
+				
+      
+    </div>
+    
+    <form name="SotpLoginForm" method="post" action="/app/sotp_login.do;BV_SessionID=BB20CB150819E35E7E87A78675A33164.07b15b40"><input type="hidden" name="org.apache.struts.taglib.html.TOKEN" value="ddd347f17275666effb621da2c17844b" style="">
+      <div class="pcmm_emoji-frm">
+        <div class="pcmm_emoji-img" id="select_1" tabindex="0"></div>
+        <div class="pcmm_emoji-img" id="select_2" tabindex="0"></div>
+        
+        <input type="reset" value="クリア" class="pcmm_emoji-btn pcmm_emoji-btn__clear" onclick="clearEmoji()" style="">
+        
+      </div>
+      <div class="pcmm_emoji-btn__block">
+      
+        
+        <input type="button" value="認証する" class="pcmm_emoji-btn pcmm_emoji-btn__primary" onclick="check()" style="">
+        <input type="button" value="認証コードを再送信する" class="pcmm_emoji-btn pcmm_emoji-btn__negative" onclick="reSend();" style="">
+        
+      
+      </div>
+      <input type="hidden" name="eventType" value="init" style="">
+      <input type="hidden" name="selectImageNo1" value="" id="selectImageNo1" style="">
+      <input type="hidden" name="selectImageNo2" value="" id="selectImageNo2" style="">
+      <input type="hidden" name="mskMail" value="k*****r@gmail.com" style="">
+      <input type="hidden" name="limitMinits" value="2" style="">
+      <input type="hidden" name="seqNo" value="27" style="">
+      <input type="hidden" name="altFlg" value="0" style="">
+      <input type="hidden" name="emojiMappingFlg" value="1" style="">
+	  <input type="hidden" name="activeMappingFlg" value="1" style="">
+   	  <input type="hidden" name="emojiMappingDate" value="20260503" style="">
+      <input type="hidden" name="loginRouteKbn" value="0" style="">
+    </form>
+  </div>
+  <div class="pcmm_emoji-main__block pcmm_emoji-note">
+    <p class="pcmm_emoji-note__block" data-mark="※">認証コードの有効時間は2分となります。</p>
+  </div>
+</main>
+<footer class="pcmm_emoji-fot">
+  <p class="pcmm_emoji-fot__txt">
+    商号等：楽天証券株式会社／金融商品取引業者 関東財務局長（金商）第195号、商品先物取引業者<br>
+    加入協会：日本証券業協会、一般社団法人金融先物取引業協会、日本商品先物取引協会、一般社団法人第二種金融商品取引業協会、一般社団法人資産運用業協会
+  </p>
+  <p class="pcmm_emoji-fot__copy">Copyright®&nbsp;Rakuten&nbsp;Securities,&nbsp;Inc.&nbsp;All&nbsp;Rights&nbsp;Reserved.</p>
+</footer>
+
+  
+ <script type="text/javascript" id="" charset="">var ugGetcookie=getCookieArray(),ug_Cookieid=ugGetcookie.Rz_sec;function getCookieArray(){var b=[];if(""!=document.cookie)for(var c=document.cookie.split("; "),a=0;a<c.length;a++){var d=c[a].split("\x3d");b[d[0]]=decodeURIComponent(d[1])}return b};</script> 
+  <script type="text/javascript" id="" charset="">window.ugattr=window.ugattr||{};ugattr.serviceId=ug_Cookieid;</script>   <script type="text/javascript" id="" charset="">(function(){var a=window,d=document;a=a.usergram=a.usergram||[];var c,b;a.l||(a.s=(new Date).getTime(),a.l=!0,c=d.getElementsByTagName("script")[0],b=d.createElement("script"),b.type="text/javascript",b.async=!0,b.src="//code.usergram.info/js/usergram.js",c.parentNode.insertBefore(b,c))})();window.usergram=window.usergram||[];window.ugattr=window.ugattr||{};usergram.push(["send","UgI7Dg-1","pv",ugattr]);</script> 
+<script type="text/javascript" id="" charset="">function rat_lidTrackDummy(){}
+function rat_generalClickEventReplace(){var n=[],k=!1,a=!1,g=[],l=[],b="",q=/s\.lidTrack\s*\(\s*('|")/,t=/('|")\s*\)/,u=/dataLayer\.push\s*\(\s*\{\s*('|")event('|")\s*:\s*('|")(rat_general_click_event|rat_onclicktrack)('|")\s*,\s*('|")(rat_general_click_value|rat_onclicktrackid)('|")\s*:\s*('|")/,h=[],r=[],m=[];"undefined"!=typeof jQuery?b=$("[onclick], [data-ratid]"):document.querySelectorAll&&(b=document.querySelectorAll("[onclick], [data-ratid]"));for(var d=0;d<b.length;d++){var f=b[d].getAttribute("onclick");
+b[d].dataset.ratevent&&-1<b[d].dataset.ratevent.indexOf("click")&&(k=!0);if(f){var e=f.toString();a=q.test(e);u.test(e)}if(a){e&&(g=e.split(";"));if(g)for(var c=0;c<g.length;c++)if("undefined"!=g[c]&&-1<g[c].indexOf("s.lidTrack")){if(f="",a=g[c].toString(),a=a.replace(q,"regex-Delimiter"),a=a.replace(t,"regex-Delimiter"),e=a.split("regex-Delimiter")[2],a=a.split("regex-Delimiter")[1],a=-1<a.indexOf("chatbottrigger")?"chatbottrigger|"+location.hostname+location.pathname:a,k||n.push(a),0<g[c].indexOf("s.lidTrack")&&
+(f=g[c].split("s.lidTrack")[0]),f||e)e&&0<e.length?l.push(f+"rat_lidTrackDummy()"+e):l.push(f+"rat_lidTrackDummy()")}else g[c]&&l.push(g[c]);k||(b[d].setAttribute("data-ratid",n.join(",")),b[d].setAttribute("data-ratevent","click"),b[d].setAttribute("data-ratparam","all"));l.length&&0<l.length?b[d].setAttribute("onclick",l.join(";")+";"):b[d].removeAttribute("onclick")}e="";n=[];a=k=!1;g=[];l=[];arr_pre_lidtrack=[];arr_post_lidtrack=[]}"undefined"!=typeof jQuery?b=$("[onload]"):document.querySelectorAll&&
+(b=document.querySelectorAll("[onload]"));for(d=0;d<b.length;d++){n=b[d].getAttribute("onload");b[d].dataset.ratevent&&-1<b[d].dataset.ratevent.indexOf("appear")&&(k=!0);if(n){var p=n.toString();a=q.test(p);u.test(p)}if(a){p&&(h=p.split(";"));if(h)for(c=0;c<h.length;c++)if("undefined"!=h[c]&&-1<h[c].indexOf("s.lidTrack")){if(f="",a=h[c].toString(),a=a.replace(q,"regex-Delimiter"),a=a.replace(t,"regex-Delimiter"),e=a.split("regex-Delimiter")[2],a=a.split("regex-Delimiter")[1],a=-1<a.indexOf("chatbottrigger")?
+"chatbottrigger|"+location.hostname+location.pathname:a,k||r.push(a),0<h[c].indexOf("s.lidTrack")&&(f=h[c].split("s.lidTrack")[0]),f||e)e&&0<e.length?m.push(f+"rat_lidTrackDummy()"+e):m.push(f+"rat_lidTrackDummy()")}else h[c]&&m.push(h[c]);!k&&0<r.length&&dataLayer.push({event:"rat_general_appear_send",rat_general_appear_value:r.join(",")});m.length&&0<m.length?b[d].setAttribute("onload",m.join(";")+";"):b[d].removeAttribute("onload")}p="";r=[];a=k=!1;h=[];m=[];arr_pre_lidtrack=[];arr_post_lidtrack=
+[]}return!0}window.setTimeout(rat_generalClickEventReplace,100);</script><script type="text/javascript" id="" charset="">function dataLayer_internalClickSearch_PC_SP(){var b=document.querySelectorAll("#search-stock-01,#products-search-input,#menu-search-input");b.forEach(function(a){a.addEventListener("keydown",function(c){c.key==="Enter"&&(window.dataLayer=window.dataLayer||[],a.id==="search-stock-01"?window.dataLayer.push({event:"RAT_internalClickSearch_PC_202407",RAT_internalClickSearch_202407:"enter"}):a.id==="products-search-input"?window.dataLayer.push({event:"RAT_internalClickSearch_SP_TOP_202407",RAT_internalClickSearch_202407:"enter"}):
+a.id==="menu-search-input"&&window.dataLayer.push({event:"RAT_internalClickSearch_SP_MENU_202407",RAT_internalClickSearch_202407:"enter"}))})})}dataLayer_internalClickSearch_PC_SP();</script>
+<script type="text/javascript" id="" charset="">!function(b){if(!window[b]){var a=window[b]=function(){var c=[].slice.call(arguments);return a.x?a.x.apply(0,c):a.q.push(c)};a.q=[];a.i=Date.now();a.allow=function(){a.o="allow"};a.deny=function(){a.o="deny"}}}("krt");</script>
+<script id="" text="" charset="" type="text/javascript" src="https://cdn-edge.karte.io/5c532175a361ec6131ed2c3a628ede45/edge.js"></script><iframe src="//www.rakuten-sec.co.jp/web/shared/include/analysis/rzck-iframe-rsec.html?o-id=https%3A%2F%2Fmember.rakuten-sec.co.jp" style="display: none; visibility: hidden;"></iframe><input type="hidden" name="rat" id="ratAccountId" value="1295" style=""><input type="hidden" name="rat" id="ratCustomParameters" value="{'pageTitle':'ログイン認証 | 楽天証券[PC]', 'pageTitle':'ログイン認証 | 楽天証券[PC]'}" style=""><input type="hidden" name="rat" id="ratPageName" value="[member]/app/Login.do" style="">
+<input type="hidden" name="rat" id="ratServiceId" value="1" style="">
+
+
+
+<script type="text/javascript" id="" charset="">var rat_getRzsec=google_tag_manager["rm"]["9187747"](61),rat_getRgsec=google_tag_manager["rm"]["9187747"](62),rat_getLocalStorage_20200609=google_tag_manager["rm"]["9187747"](63),rat_cvPageMeasurement=google_tag_manager["rm"]["9187747"](64),rat_searchLidTrack=google_tag_manager["rm"]["9187747"](65),rat_searchExitDownload=google_tag_manager["rm"]["9187747"](66),rat_pageName,rat_preVal,rat_element=document.getElementById("ratAccountId"),rat_url=location.href,rat_host=location.hostname,rat_title=document.title,rat_ratCustom,rat_val,rat_arr,rat_ratPageNameTag,rat_domainList={"account.rakuten-sec.co.jp":"[account]",
+"dc.rakuten-sec.co.jp":"[dc]","wrap.rakuten-sec.co.jp":"[wrap]","rfx.rakuten-sec.co.jp":"[rfx]","member.rakuten-sec.co.jp":"[member]","faq.rakuten-sec.co.jp":"[faq]","fx.rakuten-sec.co.jp":"[fx]","fxdemo.rakuten-sec.co.jp":"[fxdemo]","fxbo.rakuten-sec.co.jp":"[fxbo]","demo-fxbo.rakuten-sec.co.jp":"[demo-fxbo]","reset.rakuten-sec.co.jp":"[reset]","search.rakuten-sec.co.jp":"[search]","fa.rakuten-sec.co.jp":"[fa]","igrow.rakuten-sec.co.jp":"[igrow]","tsmt4.rakuten-sec.co.jp":"[tsmt4]","media.rakuten-sec.net":"[media]",
+"marketspeed.jp":"[marketspeed]","ispeed.jp":"[ispeed]",end:"_"};rat_url=rat_url.split(";")[0];rat_url=rat_url.split("?")[0];rat_url=rat_url.split("#")[0];rat_url=rat_url.split(rat_host)[1];rat_host=rat_host.indexOf("www.")>-1?rat_host.split("www.")[1]:rat_host;rat_domainList[rat_host]?rat_preVal=rat_domainList[rat_host]:rat_domainList["www."+rat_host]?rat_preVal=rat_domainList["www."+rat_host]:rat_host!=="rakuten-sec.co.jp"&&(rat_preVal="[other]");rat_pageName=rat_preVal?rat_preVal+rat_url:rat_url;
+rat_element&&rat_pageName&&((rat_ratPageNameTag=document.getElementById("ratPageName"))?rat_ratPageNameTag.setAttribute("value",rat_pageName):rat_element.insertAdjacentHTML("afterend",'\x3cinput type\x3d"hidden" name\x3d"rat" id\x3d"ratPageName" value\x3d"'+rat_pageName+'"\x3e'));
+rat_element&&rat_title&&((rat_ratCustom=document.getElementById("ratCustomParameters"))?(rat_val=rat_ratCustom.getAttribute("value").split("{")[1].split("}")[0],rat_arr=rat_val.split(","),rat_arr.push("'pageTitle':'"+rat_title+"'"),rat_val=rat_arr.join(", "),rat_ratCustom.setAttribute("value","{"+rat_val+"}")):rat_element.insertAdjacentHTML("afterend",'\x3cinput type\x3d"hidden" name\x3d"rat" id\x3d"ratCustomParameters" value\x3d"{\'pageTitle\':\''+rat_title+"'}\"\x3e"));</script>
+<script id="" text="" charset="" type="text/javascript" src="//r.r10s.jp/com/rat/js/rat-sec.js"></script><div id="batBeacon877440312513" style="width: 0px; height: 0px; display: none; visibility: hidden;"><img id="batBeacon371231635287" width="0" height="0" alt="" src="https://bat.bing.com/action/0?ti=52014240&amp;tm=gtm002&amp;Ver=2&amp;mid=b9e3e0d4-d932-4a67-b9c1-e5c2cc75a0aa&amp;bo=1&amp;sid=7c2ca1a047c911f1b16ed7c64f3a0409&amp;vid=7c2dbd7047c911f1835b0fb0563238db&amp;vids=0&amp;msclkid=N&amp;uach=pv%3D10.0&amp;pi=0&amp;lg=en-US&amp;sw=1280&amp;sh=720&amp;sc=24&amp;nwd=1&amp;tl=%E3%83%AD%E3%82%B0%E3%82%A4%E3%83%B3%E8%AA%8D%E8%A8%BC%20%7C%20%E6%A5%BD%E5%A4%A9%E8%A8%BC%E5%88%B8%5BPC%5D&amp;p=https%3A%2F%2Fmember.rakuten-sec.co.jp%2Fapp%2FLogin.do&amp;r=https%3A%2F%2Fwww.rakuten-sec.co.jp%2F&amp;lt=646&amp;evt=pageLoad&amp;sv=2&amp;cdb=AQAQ&amp;rn=33181" style="width: 0px; height: 0px; display: none; visibility: hidden;"></div>
+<iframe src="https://www.rakuten.co.jp/com/rat/plugin/external/ral-iframe-rakuten.co.jp.html?o-id=https%3A%2F%2Fmember.rakuten-sec.co.jp" style="display: none; visibility: hidden;"></iframe>
+<script type="text/javascript" id="" charset="">dataLayer.push({event:"rat_end1295_20251223"});</script><input type="hidden" name="rat" id="ratAccountId" value="1003" style="">
+<input type="hidden" name="rat" id="ratServiceId" value="1" style="">
+
+<input type="hidden" name="rat" id="ratCustomerId" value="" style="">
+<script type="text/javascript" id="" charset="">dataLayer.push({event:"rat_end_basicTag_20251223"});</script><iframe src="//www.rakuten-sec.co.jp/web/shared/include/analysis/rzck-iframe-rsec.html?o-id=https%3A%2F%2Fmember.rakuten-sec.co.jp" style="display: none; visibility: hidden;"></iframe><script type="text/javascript" id="" charset="">var getRzsec=google_tag_manager["rm"]["9187747"](80),getRgsec=google_tag_manager["rm"]["9187747"](81),getLocalStorage_20200609=google_tag_manager["rm"]["9187747"](82),getPageName=google_tag_manager["rm"]["9187747"](83),cvPageMeasurement=google_tag_manager["rm"]["9187747"](84),searchLidTrack=google_tag_manager["rm"]["9187747"](85),searchExitDownload=google_tag_manager["rm"]["9187747"](86),purchaseMeasurement_20201009=google_tag_manager["rm"]["9187747"](87);</script>
+
+<script type="text/javascript" id="" charset="">dataLayer.push({event:"rat_end_Measurement_20251223"});</script><script id="" text="" charset="" type="text/javascript" src="//r.r10s.jp/com/rat/js/rat-sec.js"></script><div id="batBeacon454186108024" style="width: 0px; height: 0px; display: none; visibility: hidden;"><img id="batBeacon524758602079" width="0" height="0" alt="" src="https://bat.bing.com/action/0?ti=52012586&amp;tm=gtm002&amp;Ver=2&amp;mid=a2513a47-6a67-409d-9f66-7bab3287e62d&amp;bo=1&amp;sid=7c2ca1a047c911f1b16ed7c64f3a0409&amp;vid=7c2dbd7047c911f1835b0fb0563238db&amp;vids=0&amp;msclkid=N&amp;uach=pv%3D10.0&amp;pi=0&amp;lg=en-US&amp;sw=1280&amp;sh=720&amp;sc=24&amp;nwd=1&amp;tl=%E3%83%AD%E3%82%B0%E3%82%A4%E3%83%B3%E8%AA%8D%E8%A8%BC%20%7C%20%E6%A5%BD%E5%A4%A9%E8%A8%BC%E5%88%B8%5BPC%5D&amp;p=https%3A%2F%2Fmember.rakuten-sec.co.jp%2Fapp%2FLogin.do&amp;r=https%3A%2F%2Fwww.rakuten-sec.co.jp%2F&amp;lt=646&amp;evt=pageLoad&amp;sv=2&amp;cdb=AQAQ&amp;rn=189080" style="width: 0px; height: 0px; display: none; visibility: hidden;"></div><script type="text/javascript" id="" charset="">var client_cd=document.cookie.match(RegExp("Rz_sec\x3d([^;]*);*"))[1];krt("send","identify",{user_id:client_cd});</script><iframe src="https://www.rakuten.co.jp/com/rat/plugin/external/ral-iframe-rakuten.co.jp.html?o-id=https%3A%2F%2Fmember.rakuten-sec.co.jp" style="display: none; visibility: hidden;"></iframe><div data-karte-issues-action="" id="karte-issues-action-root-683bad570549a1a29060d3ec-9cb34f00-4c00-4311-9146-6ec8c88ec2b1" style="all: initial; font-family: inherit"></div><div data-karte-issues-action="" id="karte-issues-action-root-683bad570549a1a29060d3ec-3d3af15c-c712-431b-957c-bbcf6bb4f0d6" style="all: initial; font-family: inherit"></div><div data-karte-issues-action="" id="karte-issues-action-root-683bad570549a1a29060d3ec-10487578-b46b-4eef-b2cd-f2b68879e072" style="all: initial; font-family: inherit"></div><div data-karte-issues-action="" id="karte-issues-action-root-683bad570549a1a29060d3ec-5499a0ca-abca-48cf-8ef9-59a645a72e37" style="all: initial; font-family: inherit"></div><div data-karte-issues-action="" id="karte-issues-action-root-683801551bd443ace1512a0d-64d80705-3084-4a50-9148-37226c0963a6" style="all: initial; font-family: inherit"></div><div data-karte-issues-action="" id="karte-issues-action-root-683801551bd443ace1512a0d-e0054bae-7951-49bc-ac3e-f4f19752d793" style="all: initial; font-family: inherit"></div></body></html>
