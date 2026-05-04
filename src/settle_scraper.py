@@ -17,14 +17,23 @@ MAIL_WAIT_SEC = 30  # 認証メール到着を待つ最大秒数
 
 def _get_emoji_names_from_gmail() -> tuple[str, str]:
     """Gmailから楽天証券の2FA認証メールを読み、絵柄名を返す。"""
+    import datetime as dt
+    gmail_user = config.GMAIL_2FA_USER
+    gmail_pass = config.GMAIL_2FA_PASSWORD
+    print(f"  IMAP接続先: {gmail_user}")
+
     deadline = time.time() + MAIL_WAIT_SEC
+    today_str = dt.date.today().strftime("%d-%b-%Y")
     while time.time() < deadline:
         try:
             mail = imaplib.IMAP4_SSL("imap.gmail.com", 993)
-            mail.login(config.EMAIL_FROM, config.EMAIL_PASSWORD)
+            mail.login(gmail_user, gmail_pass)
             mail.select("INBOX")
-            _, ids = mail.search(None, '(FROM "rakuten-sec.co.jp" UNSEEN)')
+            # UNSEEN に限らず今日のメールを検索（既読でも取得）
+            _, ids = mail.search(None, f'(FROM "rakuten-sec.co.jp" SINCE {today_str})')
+            print(f"  メール検索結果: {ids[0]}")
             if ids[0]:
+                # 最新のメールを取得
                 msg_id = ids[0].split()[-1]
                 _, data = mail.fetch(msg_id, "(RFC822)")
                 msg = email.message_from_bytes(data[0][1])
@@ -36,10 +45,12 @@ def _get_emoji_names_from_gmail() -> tuple[str, str]:
                 mail.logout()
                 m1 = re.search(r'絵文字[１1]の内容[\s　]*(\S+)', body)
                 m2 = re.search(r'絵文字[２2]の内容[\s　]*(\S+)', body)
+                print(f"  絵文字正規表現マッチ: {bool(m1)}, {bool(m2)}")
                 if m1 and m2:
                     return m1.group(1), m2.group(1)
+            mail.logout()
         except Exception as e:
-            print(f"メール確認エラー: {e}")
+            print(f"  メール確認エラー: {e}")
         time.sleep(5)
     raise TimeoutError(f"{MAIL_WAIT_SEC}秒待っても認証メールが届きませんでした")
 

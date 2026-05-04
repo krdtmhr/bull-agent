@@ -14,6 +14,10 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 EMAIL_FROM = os.getenv("EMAIL_FROM")
 EMAIL_TO = os.getenv("EMAIL_TO")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
+
+# 2FA認証メール受信用Gmail（krdtmhr@gmail.com）
+GMAIL_2FA_USER = os.getenv("GMAIL_2FA_USER", os.getenv("EMAIL_FROM"))
+GMAIL_2FA_PASSWORD = os.getenv("GMAIL_2FA_PASSWORD", os.getenv("EMAIL_PASSWORD"))
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "465"))
 

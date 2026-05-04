@@ -36,6 +36,8 @@ jobs:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          GMAIL_2FA_USER: ${{ secrets.GMAIL_2FA_USER }}
+          GMAIL_2FA_PASSWORD: ${{ secrets.GMAIL_2FA_PASSWORD }}
 
       - name: 状態をリポジトリに保存
         if: always()
