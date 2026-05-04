@@ -50,9 +50,36 @@ def _do_login(page, login_id: str, password: str) -> bool:
 
     # ① ID・パスワードでログイン
     page.goto("https://www.rakuten-sec.co.jp/ITS/V_ACT_Login.html", timeout=20000)
-    page.fill('input[name="loginid"]', login_id)
-    page.fill('input[name="passwd"]', password)
-    page.click('input[type="submit"]')
+    page.wait_for_load_state("networkidle", timeout=15000)
+    os.makedirs("screenshots", exist_ok=True)
+    page.screenshot(path="screenshots/rakuten_login.png")
+    print("  ログインページ スクショ保存")
+
+    # フィールド名を複数パターンで試す
+    for id_sel in ('input[name="loginid"]', 'input[name="userid"]', 'input[id*="login"]'):
+        try:
+            page.fill(id_sel, login_id, timeout=3000)
+            break
+        except Exception:
+            continue
+    for pw_sel in ('input[name="passwd"]', 'input[name="password"]', 'input[type="password"]'):
+        try:
+            page.fill(pw_sel, password, timeout=3000)
+            break
+        except Exception:
+            continue
+
+    # ログインボタンをクリック
+    for btn_sel in (
+        'button#login-btn',
+        'button[type="submit"]',
+        'button:has-text("ログイン")',
+    ):
+        try:
+            page.click(btn_sel, timeout=5000)
+            break
+        except Exception:
+            continue
 
     # ② 2FAページ待ち
     try:
@@ -61,7 +88,11 @@ def _do_login(page, login_id: str, password: str) -> bool:
         # 2FAなしで直接ログインできた場合
         return True
 
-    # ③ 認証メールから絵柄名を取得
+    # ③ 2FAページのスクショ保存（デバッグ用）
+    page.screenshot(path="screenshots/rakuten_2fa.png")
+    print("  2FAページ スクショ保存")
+
+    # 認証メールから絵柄名を取得
     emoji1, emoji2 = _get_emoji_names_from_gmail()
     print(f"  認証絵柄: {emoji1} → {emoji2}")
 
