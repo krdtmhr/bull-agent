@@ -32,20 +32,36 @@ def _get_emoji_names_from_gmail() -> tuple[str, str]:
             _, ids = conn.search(None, f'(FROM "service@rakuten-sec.co.jp" SINCE {today_str})')
             print(f"  メール検索結果件数: {len(ids[0].split()) if ids[0] else 0}")
             if ids[0]:
+                msg_list = ids[0].split()
                 # 最新から順に2FA認証メール（絵文字コード入り）を探す
-                for msg_id in reversed(ids[0].split()):
+                for i, msg_id in enumerate(reversed(msg_list)):
                     _, data = conn.fetch(msg_id, "(RFC822)")
                     msg = email.message_from_bytes(data[0][1])
-                    body = ""
+                    body_plain = ""
+                    body_html = ""
+                    parts_info = []
                     for part in msg.walk():
-                        if part.get_content_type() == "text/plain":
-                            # 日本語メールはISO-2022-JPが多い
-                            charset = part.get_content_charset() or "iso-2022-jp"
+                        ct = part.get_content_type()
+                        charset = part.get_content_charset() or "iso-2022-jp"
+                        parts_info.append(ct)
+                        raw = part.get_payload(decode=True)
+                        if raw is None:
+                            continue
+                        if ct == "text/plain" and not body_plain:
                             try:
-                                body = part.get_payload(decode=True).decode(charset, errors="replace")
+                                body_plain = raw.decode(charset, errors="replace")
                             except Exception:
-                                body = part.get_payload(decode=True).decode("utf-8", errors="replace")
-                            break
+                                body_plain = raw.decode("utf-8", errors="replace")
+                        elif ct == "text/html" and not body_html:
+                            try:
+                                body_html = raw.decode(charset, errors="replace")
+                            except Exception:
+                                body_html = raw.decode("utf-8", errors="replace")
+                    body = body_plain or body_html
+                    # 最初のメールのみデバッグ出力
+                    if i == 0:
+                        print(f"  [DBG] MIME: {parts_info}")
+                        print(f"  [DBG] body先頭100文字: {repr(body[:100])}")
                     m1 = re.search(r'絵文字[１1]の内容[\s　]*(\S+)', body)
                     m2 = re.search(r'絵文字[２2]の内容[\s　]*(\S+)', body)
                     if m1 and m2:
