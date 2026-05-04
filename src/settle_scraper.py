@@ -55,8 +55,22 @@ def _do_login(page, login_id: str, password: str) -> bool:
     page.screenshot(path="screenshots/rakuten_login.png")
     print("  ログインページ スクショ保存")
 
-    # ログインID: type="text" の最初のフィールド
-    page.locator('input[type="text"]').first.fill(login_id)
+    # ログインID: 検索バー(rsearchInput)を除いた最初のテキストフィールド
+    filled = False
+    for id_sel in (
+        'input[type="text"]:not([id="rsearchInput"])',
+        'input[type="text"]:not([class*="search"])',
+        'form input[type="text"]',
+    ):
+        try:
+            page.locator(id_sel).first.fill(login_id, timeout=5000)
+            filled = True
+            print(f"  ログインIDフィールド入力成功: {id_sel}")
+            break
+        except Exception:
+            continue
+    if not filled:
+        raise RuntimeError("ログインIDフィールドが見つかりませんでした")
     # パスワード: type="password" のフィールド
     page.locator('input[type="password"]').first.fill(password)
     # 入力後スクショ（フィールドに値が入ったか確認用）
