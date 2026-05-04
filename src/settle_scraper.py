@@ -139,6 +139,22 @@ def _do_login(page, login_id: str, password: str) -> bool:
         print("  2FAなし、ダッシュボードへ遷移済み")
         return True
 
+    # HTMLソース保存（デバッグ用）
+    with open("screenshots/rakuten_2fa_source.html", "w", encoding="utf-8") as f:
+        f.write(page.content())
+    # 全imgのalt/title/onclick属性をログ出力
+    imgs = page.evaluate("""
+        () => Array.from(document.querySelectorAll('img')).map(img => ({
+            alt: img.alt, title: img.title, id: img.id,
+            className: img.className.substring(0, 40),
+            onclick: (img.onclick || '').toString().substring(0, 80),
+            parentTag: img.parentElement ? img.parentElement.tagName : '',
+            parentOnclick: (img.parentElement && img.parentElement.onclick
+                ? img.parentElement.onclick.toString().substring(0, 80) : '')
+        }))
+    """)
+    print(f"  [DBG] 2FAページ img一覧: {imgs}")
+
     # 認証メールから絵柄名を取得
     emoji1, emoji2 = _get_emoji_names_from_gmail()
     print(f"  認証絵柄: {emoji1} → {emoji2}")
