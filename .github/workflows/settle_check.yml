@@ -1,0 +1,48 @@
+name: 約定金額取得
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  settle:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v4
+
+      - name: Python 3.11 セットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 依存パッケージのインストール
+        run: pip install -r requirements.txt
+
+      - name: Playwright ブラウザインストール
+        run: playwright install chromium --with-deps
+
+      - name: 約定金額取得・ポートフォリオ更新
+        run: python -m src.settle
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          RAKUTEN_LOGIN_ID: ${{ secrets.RAKUTEN_LOGIN_ID }}
+          RAKUTEN_PASSWORD: ${{ secrets.RAKUTEN_PASSWORD }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+
+      - name: 状態をリポジトリに保存
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git add portfolio_state.json screenshots/rakuten_history.png 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "約定金額反映・ポートフォリオ更新 [skip ci]"
+          git pull --rebase origin master
+          git push
