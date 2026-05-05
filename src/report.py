@@ -19,6 +19,8 @@ import io
 import traceback
 from datetime import datetime
 
+import config
+
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8")
 
 
@@ -81,14 +83,37 @@ def main():
     print("市場データ取得中...")
     data = fetch_market_data()
 
-    # ④ コンテンツ配信
+    # ④ キャラ会話生成（失敗しても既存フローを止めない）
+    character_report = None
+    try:
+        from src.character_engine import generate_character_report
+        print("キャラ会話・Sheets連携処理中...")
+        trade_result = {
+            "action": action,
+            "signal": portfolio.last_signal_action,
+            "trade_summary": trade_summary,
+            "lot": lot,
+            "realized_pnl": 0,
+            "sell_parts": result.get("sell_parts", 0),
+        }
+        character_report = generate_character_report(
+            market_data=data,
+            trade_result=trade_result,
+            portfolio=portfolio,
+            screenshot_url=None,
+        )
+        print("キャラ会話生成完了")
+    except Exception as e:
+        print(f"キャラ会話生成失敗（メール・LINEは続行）: {e}")
+
+    # ⑤ コンテンツ配信
     notifier = EmailNotifier()
     print("報告メール送信中...")
-    notifier.send_report_email(action, trade_summary, shot, data, portfolio)
+    notifier.send_report_email(action, trade_summary, shot, data, portfolio, character_report)
     print("報告メール送信完了")
 
     print("LINE通知送信中...")
-    notifier.send_report_line(action, trade_summary, data, portfolio, shot)
+    notifier.send_report_line(action, trade_summary, data, portfolio, shot, character_report)
     print("LINE通知送信完了")
 
     print(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] 完了")

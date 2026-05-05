@@ -3,3 +3,6 @@ openai
 python-dotenv
 tweepy
 playwright
+gspread
+google-auth
+google-auth-oauthlib

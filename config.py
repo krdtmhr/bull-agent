@@ -30,3 +30,13 @@ X_API_KEY_SECRET     = os.getenv("X_API_KEY_SECRET")
 X_ACCESS_TOKEN       = os.getenv("X_ACCESS_TOKEN")
 X_ACCESS_TOKEN_SECRET = os.getenv("X_ACCESS_TOKEN_SECRET")
 
+WP_URL          = os.getenv("WP_URL", "https://yumeose.com/wp")
+WP_USER         = os.getenv("WP_USER", "krdtmhr")
+WP_APP_PASSWORD = os.getenv("WP_APP_PASSWORD")
+
+GOOGLE_SHEETS_SPREADSHEET_ID = os.getenv(
+    "GOOGLE_SHEETS_SPREADSHEET_ID",
+    "17y0Ds1AjtslH7EqZqTDhLzJV6WPXFKo5TKdBl-VW6XY",
+)
+GOOGLE_SERVICE_ACCOUNT_JSON = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
+

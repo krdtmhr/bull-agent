@@ -399,9 +399,16 @@ class EmailNotifier:
         screenshot_path: "str | None",
         market_data: MarketData,
         portfolio: Portfolio,
+        character_report: "dict | None" = None,
     ):
         today = datetime.now().strftime("%Y-%m-%d")
-        burumin, beardon = self._chara_dialogue(action)
+        if character_report and character_report.get("short_dialogue"):
+            # AIが生成した会話をそのまま使う
+            dialogue_text = character_report["short_dialogue"]
+            burumin = dialogue_text
+            beardon = ""
+        else:
+            burumin, beardon = self._chara_dialogue(action)
         subject_map = {
             "BUY":  f"📈 今日は強気に買ったよ！ブルみん×ベアドン ({today})",
             "SELL": f"📉 今日は利確したよ！ブルみん×ベアドン ({today})",
@@ -436,6 +443,36 @@ class EmailNotifier:
         pnl = portfolio.total_capital - portfolio.total_deposited
         pnl_sign = "+" if pnl >= 0 else ""
         pnl_pct = (pnl / portfolio.total_deposited * 100) if portfolio.total_deposited > 0 else 0.0
+
+        # キャラ会話の追加セクション
+        ai_sections = ""
+        if character_report:
+            x_post_ai = character_report.get("x_post", "")
+            note_body_ai = character_report.get("note_body", "")
+            yt_script_ai = character_report.get("youtube_script", "")
+            next_hook_ai = character_report.get("next_hook", "")
+            if any([x_post_ai, note_body_ai, yt_script_ai]):
+                ai_sections = f"""
+{"=" * 46}
+【X投稿案（コピペしてください）】
+
+{x_post_ai}
+
+{"=" * 46}
+【note本文案】
+
+{note_body_ai}
+
+{"=" * 46}
+【YouTubeショート台本案】
+
+{yt_script_ai}
+
+{"=" * 46}
+【次回への引き】
+
+{next_hook_ai}
+"""
 
         body = f"""🐂×🧊 ブルみん×ベアドン 本日の売買結果 - {today}
 {"=" * 46}
@@ -500,6 +537,7 @@ class EmailNotifier:
 {sns_post}
 
 {"=" * 46}
+{ai_sections}{"=" * 46}
 {"※ 約定スクリーンショットを添付しています。" if screenshot_path else "※ スクリーンショットの添付はありませんでした。"}
 ※ 投資は自己責任です。このメールはあくまで記録と物語の共有です。
 """
@@ -532,21 +570,27 @@ class EmailNotifier:
         market_data: MarketData,
         portfolio: Portfolio,
         screenshot_path: "str | None" = None,
+        character_report: "dict | None" = None,
     ):
         if not config.LINE_CHANNEL_ACCESS_TOKEN or not config.LINE_USER_ID:
             return
         today = datetime.now().strftime("%Y-%m-%d")
-        burumin, beardon = self._chara_dialogue(action)
         headline_map = {
             "BUY":  "📈 今日は強気に買ったよ！",
             "SELL": "📉 今日は利確したよ！",
             "HOLD": "⏸️ 今日は静かに様子見。",
         }
         headline = headline_map.get(action, "🐂 本日の結果！")
+
+        if character_report and character_report.get("short_dialogue"):
+            dialogue = character_report["short_dialogue"]
+        else:
+            burumin, beardon = self._chara_dialogue(action)
+            dialogue = f"{burumin}\n{beardon}"
+
         text = (
             f"{headline} ブルみん×ベアドン\n\n"
-            f"{burumin}\n"
-            f"{beardon}\n\n"
+            f"{dialogue}\n\n"
             f"【{today} 本日の結果】\n"
             f"{trade_summary}\n\n"
             f"総資本：¥{portfolio.total_capital:,}\n"
