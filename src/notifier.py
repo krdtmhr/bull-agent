@@ -120,30 +120,6 @@ class EmailNotifier:
             ),
         }
 
-        # X（Twitter）投稿文
-        cme_dir = "↓" if data.cme_nikkei_change < 0 else "↑"
-        vix_short = "🚨危険" if data.vix_close >= 30 else ("⚠️警戒" if data.vix_close >= 25 else "😌安定")
-        if rule_signal.action == "SELL" and sell_parts > 0:
-            _sell_label = "全部" if sell_parts >= held_parts else f"{sell_parts}口"
-            sns_sell_text = f"{_sell_label}解約します！（¥{sell_amount:,}）"
-        else:
-            sns_sell_text = "保有なし（今日は様子見）"
-        sns_action = {
-            "BUY": f"¥{rule_signal.amount:,} 買い注文を入れます！",
-            "SELL": sns_sell_text,
-            "HOLD": "今日は様子見。何もしません。",
-        }
-        sns_post = (
-            f"🐂×🧊 今日の朝ナビ（{today}）\n"
-            f"{'📈' if rule_signal.action == 'BUY' else '📉' if rule_signal.action == 'SELL' else '⏸️'} "
-            f"{sns_action[rule_signal.action]}\n\n"
-            f"CME先物: {data.cme_nikkei_close:,.0f}円 {cme_dir}({data.cme_nikkei_change:+.0f})\n"
-            f"VIX: {data.vix_close:.1f} {vix_short}\n"
-            f"ドル円: {data.usdjpy_rate:.2f}円\n\n"
-            f"夢は推せ。でも、ちゃんと考えて推せ。🌟\n"
-            f"#楽天4倍ブル #投資日記 #ブルみん"
-        )
-
         pct = rule_signal.confidence * 100
         filled = round(pct / 20)
         confidence_bar = "●" * filled + "○" * (5 - filled)
@@ -234,11 +210,6 @@ class EmailNotifier:
 {news_section}{"=" * 46}
 【今日の操作】
 {action_instructions[rule_signal.action]}
-
-{"=" * 46}
-【📱 X（Twitter）投稿文 ─ そのままコピペでOK】
-
-{sns_post}
 
 {"=" * 46}
 【あなたの資金状況】
@@ -418,18 +389,51 @@ class EmailNotifier:
 
         action_icon = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(action, "⏸️")
 
-        # X（Twitter）投稿文
-        sns_post = (
-            f"🐂×🧊 今日の結果（{today}）\n"
-            f"{action_icon} {trade_summary}\n\n"
-            f"{burumin}\n"
-            f"{beardon}\n\n"
-            f"日経: {market_data.nikkei_close:,.0f}円 / VIX: {market_data.vix_close:.1f}\n\n"
-            f"夢は推せ。でも、ちゃんと考えて推せ。🌟\n"
-            f"#楽天4倍ブル #投資日記 #ブルみん"
+        body = self._build_report_body(
+            action=action,
+            trade_summary=trade_summary,
+            screenshot_path=screenshot_path,
+            market_data=market_data,
+            portfolio=portfolio,
+            burumin=burumin,
+            beardon=beardon,
+            action_icon=action_icon,
         )
+        msg = MIMEMultipart("mixed")
+        msg["Subject"] = subject
+        msg["From"] = self.email_from
+        msg["To"] = self.email_to
+        msg.attach(MIMEText(body, "plain", "utf-8"))
 
-        # 市場データ解説
+        if screenshot_path and os.path.exists(screenshot_path):
+            with open(screenshot_path, "rb") as f:
+                img_data = f.read()
+            ext = os.path.splitext(screenshot_path)[1].lower().lstrip(".")
+            mime_type = "png" if ext == "png" else "jpeg"
+            from email.mime.image import MIMEImage
+            img = MIMEImage(img_data, _subtype=mime_type)
+            img.add_header("Content-Disposition", "attachment",
+                           filename=os.path.basename(screenshot_path))
+            msg.attach(img)
+
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL(self.smtp_host, self.smtp_port, context=context) as server:
+            server.login(self.email_from, self.password)
+            server.sendmail(self.email_from, self.email_to, msg.as_string())
+
+    def _build_report_body(
+        self,
+        action: str,
+        trade_summary: str,
+        screenshot_path: "str | None",
+        market_data: MarketData,
+        portfolio: Portfolio,
+        burumin: str,
+        beardon: str,
+        action_icon: str,
+    ) -> str:
+        today = datetime.now().strftime("%Y-%m-%d")
+
         def arrow(val): return "↑ 上昇" if val >= 0 else "↓ 下落"
         vix = market_data.vix_close
         if vix >= 30:   vix_label = "🚨 危険水準（大荒れ注意）"
@@ -438,43 +442,11 @@ class EmailNotifier:
         else:           vix_label = "😌 落ち着いている"
         cme_note = "  ⚠️ 明日の日本株は下落見通し" if market_data.cme_nikkei_change < 0 else "  ✅ 明日の日本株は上昇見通し"
         usdjpy_note = "円安（輸出に有利）" if market_data.usdjpy_rate >= 150 else "円高（輸入に有利）"
-
-        # パフォーマンス
         pnl = portfolio.total_capital - portfolio.total_deposited
         pnl_sign = "+" if pnl >= 0 else ""
         pnl_pct = (pnl / portfolio.total_deposited * 100) if portfolio.total_deposited > 0 else 0.0
 
-        # キャラ会話の追加セクション
-        ai_sections = ""
-        if character_report:
-            x_post_ai = character_report.get("x_post", "")
-            note_body_ai = character_report.get("note_body", "")
-            yt_script_ai = character_report.get("youtube_script", "")
-            next_hook_ai = character_report.get("next_hook", "")
-            if any([x_post_ai, note_body_ai, yt_script_ai]):
-                ai_sections = f"""
-{"=" * 46}
-【X投稿案（コピペしてください）】
-
-{x_post_ai}
-
-{"=" * 46}
-【note本文案】
-
-{note_body_ai}
-
-{"=" * 46}
-【YouTubeショート台本案】
-
-{yt_script_ai}
-
-{"=" * 46}
-【次回への引き】
-
-{next_hook_ai}
-"""
-
-        body = f"""🐂×🧊 ブルみん×ベアドン 本日の売買結果 - {today}
+        return f"""🐂×🧊 ブルみん×ベアドン 本日の売買結果 - {today}
 {"=" * 46}
 おつかれさま！今日もブルみんの一日を届けるよ。
 夢は推せ。でも、ちゃんと考えて推せ。
@@ -532,36 +504,9 @@ class EmailNotifier:
   取引回数：      {portfolio.trade_count}回
 
 {"=" * 46}
-【📱 X（Twitter）投稿文 ─ そのままコピペでOK】
-
-{sns_post}
-
-{"=" * 46}
-{ai_sections}{"=" * 46}
 {"※ 約定スクリーンショットを添付しています。" if screenshot_path else "※ スクリーンショットの添付はありませんでした。"}
 ※ 投資は自己責任です。このメールはあくまで記録と物語の共有です。
 """
-        msg = MIMEMultipart("mixed")
-        msg["Subject"] = subject
-        msg["From"] = self.email_from
-        msg["To"] = self.email_to
-        msg.attach(MIMEText(body, "plain", "utf-8"))
-
-        if screenshot_path and os.path.exists(screenshot_path):
-            with open(screenshot_path, "rb") as f:
-                img_data = f.read()
-            ext = os.path.splitext(screenshot_path)[1].lower().lstrip(".")
-            mime_type = "png" if ext == "png" else "jpeg"
-            from email.mime.image import MIMEImage
-            img = MIMEImage(img_data, _subtype=mime_type)
-            img.add_header("Content-Disposition", "attachment",
-                           filename=os.path.basename(screenshot_path))
-            msg.attach(img)
-
-        context = ssl.create_default_context()
-        with smtplib.SMTP_SSL(self.smtp_host, self.smtp_port, context=context) as server:
-            server.login(self.email_from, self.password)
-            server.sendmail(self.email_from, self.email_to, msg.as_string())
 
     def send_report_line(
         self,
@@ -574,30 +519,25 @@ class EmailNotifier:
     ):
         if not config.LINE_CHANNEL_ACCESS_TOKEN or not config.LINE_USER_ID:
             return
-        today = datetime.now().strftime("%Y-%m-%d")
-        headline_map = {
-            "BUY":  "📈 今日は強気に買ったよ！",
-            "SELL": "📉 今日は利確したよ！",
-            "HOLD": "⏸️ 今日は静かに様子見。",
-        }
-        headline = headline_map.get(action, "🐂 本日の結果！")
 
         if character_report and character_report.get("short_dialogue"):
-            dialogue = character_report["short_dialogue"]
+            burumin = character_report["short_dialogue"]
+            beardon = ""
         else:
             burumin, beardon = self._chara_dialogue(action)
-            dialogue = f"{burumin}\n{beardon}"
+        action_icon = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(action, "⏸️")
 
-        text = (
-            f"{headline} ブルみん×ベアドン\n\n"
-            f"{dialogue}\n\n"
-            f"【{today} 本日の結果】\n"
-            f"{trade_summary}\n\n"
-            f"総資本：¥{portfolio.total_capital:,}\n"
-            f"投資枠：{portfolio.parts_used()}/{config.MAX_PARTS}口\n\n"
-            f"詳細と約定スクショはメールをチェックしてね！\n"
-            f"夢は推せ。でも、ちゃんと考えて推せ。🌟"
+        body = self._build_report_body(
+            action=action,
+            trade_summary=trade_summary,
+            screenshot_path=screenshot_path,
+            market_data=market_data,
+            portfolio=portfolio,
+            burumin=burumin,
+            beardon=beardon,
+            action_icon=action_icon,
         )
+        text = body[:4800] if len(body) > 4800 else body
 
         messages = [{"type": "text", "text": text}]
 
