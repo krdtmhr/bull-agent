@@ -14,6 +14,14 @@ logger = logging.getLogger(__name__)
 _MILESTONES = [110_000, 120_000, 130_000, 150_000, 200_000]
 
 
+def _safe_float(val, default: float = 0.0) -> float:
+    """Sheetsの空文字列を含む値を安全にfloatに変換する。"""
+    try:
+        return float(val) if val != "" else default
+    except (ValueError, TypeError):
+        return default
+
+
 def generate_character_report(
     market_data,
     trade_result: dict,
@@ -88,7 +96,7 @@ def generate_character_report(
     memory_context = build_memory_context(recent_trades, recent_memories)
 
     # ─── 5. 感情状態生成 ─────────────────────────────────────────────────
-    recent_pnl_list = [float(t.get("realized_pnl", 0)) for t in recent_trades[-10:]]
+    recent_pnl_list = [_safe_float(t.get("realized_pnl", 0)) for t in recent_trades[-10:]]
     rule_break = (signal != action and action != "HOLD" and signal != "HOLD")
     total_value = float(pf.get("total_capital", 100_000))
 
@@ -98,7 +106,7 @@ def generate_character_report(
         recent_pnl_list=recent_pnl_list,
         signal=signal,
         action=action,
-        vix=float(md.get("vix_close", 20)),
+        vix=_safe_float(md.get("vix_close", 20), 20.0),
         position_size=int(pf.get("current_position_value", 0)),
         rule_break=rule_break,
     )
@@ -141,7 +149,7 @@ def generate_character_report(
             realized_pnl=realized_pnl,
             total_value=total_value,
             action=action,
-            vix=float(md.get("vix_close", 20)),
+            vix=_safe_float(md.get("vix_close", 20), 20.0),
             rule_break=rule_break,
             recent_trades=recent_trades,
         )
@@ -191,7 +199,7 @@ def _detect_important_event(
     # 節目チェック
     for milestone in _MILESTONES:
         if total_value >= milestone:
-            prev_values = [float(t.get("total_value", 0)) for t in recent_trades[:-1]]
+            prev_values = [_safe_float(t.get("total_value", 0)) for t in recent_trades[:-1]]
             if prev_values and all(v < milestone for v in prev_values):
                 return "milestone"
 
@@ -222,7 +230,7 @@ def _count_streak(trades: list) -> int:
     streak = 0
     last_sign = None
     for t in reversed(trades):
-        pnl = float(t.get("realized_pnl", 0))
+        pnl = _safe_float(t.get("realized_pnl", 0))
         if pnl == 0:
             break
         sign = 1 if pnl > 0 else -1
