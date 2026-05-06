@@ -380,12 +380,17 @@ class EmailNotifier:
             beardon = ""
         else:
             burumin, beardon = self._chara_dialogue(action)
-        subject_map = {
-            "BUY":  f"📈 今日は強気に買ったよ！ブルみん×ベアドン ({today})",
-            "SELL": f"📉 今日は利確したよ！ブルみん×ベアドン ({today})",
-            "HOLD": f"⏸️ 今日は静かに様子見。ブルみん×ベアドン ({today})",
-        }
-        subject = subject_map.get(action, f"🐂 本日の結果！ブルみん×ベアドン ({today})")
+        ai_title = character_report.get("title", "") if character_report else ""
+        if ai_title:
+            action_icon_prefix = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(action, "🐂")
+            subject = f"{action_icon_prefix} {ai_title} ブルみん×ベアドン ({today})"
+        else:
+            subject_map = {
+                "BUY":  f"📈 今日は強気に買ったよ！ブルみん×ベアドン ({today})",
+                "SELL": f"📉 今日は利確したよ！ブルみん×ベアドン ({today})",
+                "HOLD": f"⏸️ 今日は静かに様子見。ブルみん×ベアドン ({today})",
+            }
+            subject = subject_map.get(action, f"🐂 本日の結果！ブルみん×ベアドン ({today})")
 
         action_icon = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(action, "⏸️")
 
