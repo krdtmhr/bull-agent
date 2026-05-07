@@ -229,55 +229,6 @@ class EmailNotifier:
 ※ 投資は自己責任です。このメールはあくまで参考情報です。
 """
 
-    def send_line(self, rule_signal: RuleSignal, market_data: MarketData, portfolio: Portfolio, news_items: "list[NewsItem] | None" = None, sell_parts: int = 0):
-        if not config.LINE_CHANNEL_ACCESS_TOKEN or not config.LINE_USER_ID:
-            return
-        if news_items is None:
-            news_items = []
-        today = datetime.now().strftime("%Y-%m-%d")
-        stance_map = {"BUY": "📈 強気寄り（攻めの日）", "SELL": "📉 慎重寄り（守りの日）", "HOLD": "⏸️ 様子見（待ちの日）"}
-        stance = stance_map.get(rule_signal.action, "⏸️ 様子見")
-
-        nikkei_arrow = "↑" if market_data.nikkei_change >= 0 else "↓"
-        cme_arrow = "↑" if market_data.cme_nikkei_change >= 0 else "↓"
-
-        if rule_signal.action == "BUY":
-            action_line = f"→ ¥{rule_signal.amount:,} 買い注文を入れよう！"
-        elif rule_signal.action == "SELL" and sell_parts > 0:
-            action_line = f"→ {sell_parts}口（¥{sell_parts * portfolio.lot_size():,}）解約しよう！"
-        else:
-            action_line = "→ 今日は何もしない"
-
-        news_lines = ""
-        if news_items:
-            headlines = []
-            for i, item in enumerate(news_items[:3], 1):
-                headlines.append(f"{i}. {item.title}")
-            news_lines = "\n\n📰 気になるニュース\n" + "\n".join(headlines)
-
-        text = (
-            f"おはよう！ブルみん×ベアドンだよ🐂🧊\n"
-            f"今日もチェックしてくれてありがとう！\n\n"
-            f"【{today} の結論】\n"
-            f"{stance}\n"
-            f"{action_line}\n\n"
-            f"📊 マーケット速報\n"
-            f"日本株（日経225）: {market_data.nikkei_close:,.0f}円 {nikkei_arrow}({market_data.nikkei_change:+.0f})\n"
-            f"アメリカ株（S&P500）: {market_data.sp500_close:,.2f} ({market_data.sp500_change:+.2f})\n"
-            f"明日の日本株予測: {market_data.cme_nikkei_close:,.0f}円 {cme_arrow}({market_data.cme_nikkei_change:+.0f})\n"
-            f"ドル円: {market_data.usdjpy_rate:.2f}円"
-            f"{news_lines}\n\n"
-            f"詳しい分析はメールをチェックしてね！\n"
-            f"夢は推せ。でも、ちゃんと考えて推せ。🌟"
-        )
-        data = json.dumps({"to": config.LINE_USER_ID, "messages": [{"type": "text", "text": text}]}).encode("utf-8")
-        req = urllib.request.Request(
-            "https://api.line.me/v2/bot/message/push",
-            data=data,
-            headers={"Content-Type": "application/json", "Authorization": f"Bearer {config.LINE_CHANNEL_ACCESS_TOKEN}"},
-        )
-        urllib.request.urlopen(req)
-
     def send_deposit_email(self, amount: int, portfolio: Portfolio, before_capital: int):
         today = datetime.now().strftime("%Y-%m-%d")
         subject = f"【💰 入金完了】ブルみん×ベアドン ({today})"
@@ -454,6 +405,8 @@ class EmailNotifier:
         pnl_sign = "+" if pnl >= 0 else ""
         pnl_pct = (pnl / portfolio.total_deposited * 100) if portfolio.total_deposited > 0 else 0.0
 
+        def icon(val): return "⬆️" if val >= 0 else "⬇️"
+
         return f"""🐂×🧊 ブルみん×ベアドン 本日の売買結果 - {today}
 {"=" * 46}
 おつかれさま！今日もブルみんの一日を届けるよ。
@@ -473,24 +426,24 @@ class EmailNotifier:
 {"=" * 46}
 【今日の相場環境】
 
-📌 日本株（日経225）
+{icon(market_data.nikkei_change)} 日本株（日経225）
    {market_data.nikkei_close:,.0f}円  {arrow(market_data.nikkei_change)}（前日比 {market_data.nikkei_change:+,.0f}円）
 
-📌 アメリカ株（S&P500）
+{icon(market_data.sp500_change)} アメリカ株（S&P500）
    {market_data.sp500_close:,.2f}  {arrow(market_data.sp500_change)}（前日比 {market_data.sp500_change:+,.2f}）
 
-📌 明日の日本株見通し（CME先物）
+{icon(market_data.cme_nikkei_change)} 明日の日本株見通し（CME先物）
    {market_data.cme_nikkei_close:,.0f}円  {arrow(market_data.cme_nikkei_change)}（前日比 {market_data.cme_nikkei_change:+,.0f}円）
 {cme_note}
 
-📌 ドル円
+{icon(market_data.usdjpy_change)} ドル円
    1ドル = {market_data.usdjpy_rate:.2f}円  {usdjpy_note}
 
-📌 VIX（恐怖指数）
+{icon(market_data.vix_change)} VIX（恐怖指数）
    {market_data.vix_close:.2f}  {vix_label}（前日比 {market_data.vix_change:+.2f}）
    ※ 20以下：安定、25超：警戒、30超：大荒れ注意
 
-📌 米国10年債利回り
+{icon(market_data.us10y_change)} 米国10年債利回り
    {market_data.us10y_rate:.2f}%（前日比 {market_data.us10y_change:+.2f}%）
    {"金利上昇中（株の下押し要因）" if market_data.us10y_change > 0 else "金利低下中（株の支援要因）"}
 
