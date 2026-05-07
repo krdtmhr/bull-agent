@@ -74,9 +74,9 @@ class EmailNotifier:
             "HOLD": "⏸️ 様子見  ＝  待ちの日",
         }
         action_meaning = {
-            "BUY": "下落局面での押し目。\n  今日は買い注文を入れます。",
-            "SELL": "上昇局面での利益確定。\n  今日は解約注文を入れます。",
-            "HOLD": "今日は方向感がなし。\n  「動かない」も立派な投資判断です。",
+            "BUY": "下落局面での押し目。\n  今日は買い注文を入れたよ！。",
+            "SELL": "上昇局面での利益確定。\n  今日は解約注文を入れたよ！。",
+            "HOLD": "今日は方向感がなし。\n  「動かない」も立派な投資判断！",
         }
         # SELL操作の文言を口数に応じて動的生成
         sell_amount = sell_parts * portfolio.lot_size()
@@ -135,6 +135,9 @@ class EmailNotifier:
         def arrow(val):
             return "↑ 上昇" if val >= 0 else "↓ 下落"
 
+        def icon(val):
+            return "⬆️" if val >= 0 else "⬇️"
+
         if data.usdjpy_rate >= 150:
             usdjpy_note = "円安（1ドルが高い＝輸出企業に有利）"
         else:
@@ -185,24 +188,24 @@ class EmailNotifier:
 {"=" * 46}
 【今日の数字を1分で理解しよう】
 
-📌 日本の株価（日経225）
+{icon(data.nikkei_change)} 日本の株価（日経225）
    {data.nikkei_close:,.0f}円  {arrow(data.nikkei_change)}（前日比 {data.nikkei_change:+,.0f}円）
 
-📌 アメリカの株価（S&P500）
+{icon(data.sp500_change)} アメリカの株価（S&P500）
    {data.sp500_close:,.2f}  {arrow(data.sp500_change)}（前日比 {data.sp500_change:+,.2f}）
 
-📌 明日の日本株の見通し（シカゴ先物）
+{icon(data.cme_nikkei_change)} 明日の日本株の見通し（シカゴ先物）
    {data.cme_nikkei_close:,.0f}円  {arrow(data.cme_nikkei_change)}（前日比 {data.cme_nikkei_change:+,.0f}円）{cme_warn}
    ※ アメリカ市場で夜間に取引される「明日の日本株の予測値」
 
-📌 ドル・円（為替）
+{icon(data.usdjpy_change)} ドル・円（為替）
    1ドル = {data.usdjpy_rate:.2f}円  {usdjpy_note}
 
-📌 VIX（恐怖指数・市場の不安度）
+{icon(data.vix_change)} VIX（恐怖指数・市場の不安度）
    {data.vix_close:.2f}  {vix_label}（前日比 {data.vix_change:+.2f}）
    ※ 20以下：安定、25超：警戒、30超：大荒れ注意（4.3倍ブルに直撃）
 
-📌 米国10年債利回り（金利）
+{icon(data.us10y_change)} 米国10年債利回り（金利）
    {data.us10y_rate:.2f}%  {us10y_note}（前日比 {data.us10y_change:+.2f}%）
    ※ 金利が上がると株が下がりやすい傾向がある
 
@@ -282,11 +285,11 @@ class EmailNotifier:
         body = f"""💰 入金完了のお知らせ - {today}
 {"=" * 46}
 
-ブルみん: やった～！¥{amount:,} 入金されたね！
-         お金が増えると、作戦の幅が広がるよ💪
+ブルみん: やった〜！¥{amount:,} 入金されたよ！
+         お金が増えると、作戦の幅が広がるね💪
 
-ベアドン: ふん、浮かれるな。
-         でも…1口の金額が変わったから確認しておけ。
+ベアドン: 浮かれるな。
+         1口の金額が変わったから確認しておけ。
 
 {"=" * 46}
 【入金内容】
@@ -353,14 +356,14 @@ class EmailNotifier:
 
     def _chara_dialogue(self, action: str) -> tuple[str, str]:
         scripts = {
-            "BUY":  ("ブルみん: よっしゃ！今日は買ったぞ！これが俺の選択だ！💪",
-                     "ベアドン: …ふん。まあ、筋は通っている。結果を見せてもらおう。"),
-            "SELL": ("ブルみん: 利確！ありがとうございました！🙏",
-                     "ベアドン: 売り時を見極めた。悪くない判断だ。"),
-            "HOLD": ("ブルみん: 今日は待ちだ。動かないのも戦略！",
+            "BUY":  ("ブルみん: よし！今日は買ったよ！これが私の選択！💪",
+                     "ベアドン: …まあ、筋は通ってる。結果を見せてもらおう。"),
+            "SELL": ("ブルみん: 利確できたよ〜！ありがとうございました！🙏",
+                     "ベアドン: 売り時を見極めた。悪くない。"),
+            "HOLD": ("ブルみん: 今日は待ちだね。動かないのも立派な判断！",
                      "ベアドン: 正解。焦って動く方が損をする。"),
         }
-        return scripts.get(action, ("ブルみん: 今日も相場と向き合いました。",
+        return scripts.get(action, ("ブルみん: 今日も相場と向き合ったよ。",
                                     "ベアドン: 考えて動くことが大事だ。"))
 
     def send_report_email(
@@ -589,8 +592,8 @@ class EmailNotifier:
         )
         urllib.request.urlopen(req)
 
-    def send_tweet(self, action: str, trade_summary: str, market_data: MarketData) -> bool:
-        """X（Twitter）に投稿する。スクショなしのテキスト投稿。"""
+    def send_tweet(self, action: str, trade_summary: str, market_data: MarketData, character_report: "dict | None" = None) -> bool:
+        """X（Twitter）に投稿する。"""
         if not config.X_API_KEY or not config.X_ACCESS_TOKEN:
             print("X APIキー未設定のためスキップ")
             return False
@@ -602,21 +605,24 @@ class EmailNotifier:
                 access_token=config.X_ACCESS_TOKEN,
                 access_token_secret=config.X_ACCESS_TOKEN_SECRET,
             )
-            today = datetime.now().strftime("%Y-%m-%d")
-            action_icon = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(action, "⏸️")
-            burumin, beardon = self._chara_dialogue(action)
-            text = (
-                f"🐂×🧊 今日の結果（{today}）\n"
-                f"{action_icon} {trade_summary}\n\n"
-                f"{burumin}\n"
-                f"{beardon}\n\n"
-                f"日経: {market_data.nikkei_close:,.0f}円 / VIX: {market_data.vix_close:.1f}\n\n"
-                f"夢は推せ。でも、ちゃんと考えて推せ。🌟\n"
-                f"#楽天4倍ブル #投資日記 #ブルみん"
-            )
-            # 280文字超の場合はトリム
-            if len(text) > 280:
-                text = text[:277] + "..."
+            # AI生成テキストがあればそれを使う、なければフォールバック
+            if character_report and character_report.get("x_post"):
+                text = character_report["x_post"]
+            else:
+                today = datetime.now().strftime("%Y-%m-%d")
+                action_icon = {"BUY": "📈", "SELL": "📉", "HOLD": "⏸️"}.get(action, "⏸️")
+                burumin, beardon = self._chara_dialogue(action)
+                text = (
+                    f"🐂×🧊 今日の結果（{today}）\n"
+                    f"{action_icon} {trade_summary}\n\n"
+                    f"{burumin}\n"
+                    f"{beardon}\n\n"
+                    f"日経: {market_data.nikkei_close:,.0f}円 / VIX: {market_data.vix_close:.1f}\n\n"
+                    f"夢は推せ。でも、ちゃんと考えて推せ。🌟\n"
+                    f"#楽天4倍ブル #投資日記 #ブルみん"
+                )
+            if len(text) > 2000:
+                text = text[:1997] + "..."
             client.create_tweet(text=text)
             print(f"X投稿完了: {len(text)}文字")
             return True
