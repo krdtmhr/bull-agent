@@ -1,6 +1,10 @@
-import yfinance as yf
+import csv
+import urllib.request
 from dataclasses import dataclass
+from datetime import date, timedelta
 from typing import Optional
+
+import yfinance as yf
 
 
 @dataclass
@@ -45,20 +49,47 @@ def _fetch_ticker(symbol: str) -> tuple[float, float, float, str]:
     close_prev = float(hist["Close"].iloc[-2])
     change = close_today - close_prev
     change_pct = (change / close_prev) * 100
-    # タイムゾーンを除いた日付文字列
     data_date = str(hist.index[-1].date())
     return close_today, change, change_pct, data_date
 
 
+def _fetch_nikkei_stooq() -> tuple[float, float, float, str]:
+    """Stooq経由で日経225を取得。yfinance ^N225 は遅延が多いためこちらを優先する。"""
+    today = date.today()
+    start = (today - timedelta(days=14)).strftime("%Y%m%d")
+    end = today.strftime("%Y%m%d")
+    url = f"https://stooq.com/q/d/l/?s=%5Enkx&d1={start}&d2={end}&i=d"
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        lines = resp.read().decode("utf-8").strip().split("\n")
+    rows = list(csv.DictReader(lines))
+    if len(rows) < 2:
+        raise ValueError(f"Stooq: データ不足 ({len(rows)}行)")
+    # Stooqは降順（最新が先頭）
+    latest = rows[0]
+    prev = rows[1]
+    close_today = float(latest["Close"])
+    close_prev = float(prev["Close"])
+    change = close_today - close_prev
+    change_pct = (change / close_prev) * 100
+    return close_today, change, change_pct, latest["Date"]
+
+
 def fetch_market_data() -> MarketData:
-    nikkei = _fetch_ticker("^N225")
+    # 日経225はStooqを優先（yfinance ^N225 は遅延バグが多い）
+    try:
+        nikkei = _fetch_nikkei_stooq()
+        print(f"[market_data] 日経: Stooq ({nikkei[3]}) {nikkei[0]:.0f}")
+    except Exception as e:
+        print(f"[market_data] Stooq失敗、yfinanceにフォールバック: {e}")
+        nikkei = _fetch_ticker("^N225")
     sp500 = _fetch_ticker("^GSPC")
     nasdaq = _fetch_ticker("^IXIC")
     usdjpy = _fetch_ticker("USDJPY=X")
     cme = _fetch_ticker("NKD=F")
     vix = _fetch_ticker("^VIX")
     us10y = _fetch_ticker("^TNX")
-    print(f"[market_data] 日経基準日={nikkei[3]} S&P500={sp500[3]} VIX={vix[3]}")
+    print(f"[market_data] S&P500={sp500[3]} VIX={vix[3]}")
 
     return MarketData(
         nikkei_close=nikkei[0],
