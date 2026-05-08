@@ -165,6 +165,8 @@ class EmailNotifier:
                 news_lines.append(f"  {i}. {item.title}")
             news_section = "\n".join(news_lines) + "\n\n"
 
+        data_label = f"  ※ データ基準日：{data.data_as_of}（終値）\n" if data.data_as_of else ""
+
         return f"""🐂×🧊 ブルみん×ベアドン 朝ナビ - {today}
 {"=" * 46}
 おはよう！今日もチェックしてくれてありがとう。
@@ -187,7 +189,7 @@ class EmailNotifier:
 
 {"=" * 46}
 【今日の数字を1分で理解しよう】
-
+{data_label}
 {icon(data.nikkei_change)} 日本の株価（日経225）
    {data.nikkei_close:,.0f}円  {arrow(data.nikkei_change)}（前日比 {data.nikkei_change:+,.0f}円）
 
@@ -407,6 +409,8 @@ class EmailNotifier:
 
         def icon(val): return "⬆️" if val >= 0 else "⬇️"
 
+        data_label = f"  ※ データ基準日：{market_data.data_as_of}（終値）\n" if market_data.data_as_of else ""
+
         return f"""🐂×🧊 ブルみん×ベアドン 本日の売買結果 - {today}
 {"=" * 46}
 おつかれさま！今日もブルみんの一日を届けるよ。
@@ -425,7 +429,7 @@ class EmailNotifier:
 
 {"=" * 46}
 【今日の相場環境】
-
+{data_label}
 {icon(market_data.nikkei_change)} 日本株（日経225）
    {market_data.nikkei_close:,.0f}円  {arrow(market_data.nikkei_change)}（前日比 {market_data.nikkei_change:+,.0f}円）
 

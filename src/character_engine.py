@@ -311,6 +311,7 @@ def _normalize_market_data(md) -> dict:
         "vix_change": getattr(md, "vix_change", 0),
         "us10y_rate": getattr(md, "us10y_rate", 0),
         "us10y_change": getattr(md, "us10y_change", 0),
+        "data_as_of": getattr(md, "data_as_of", ""),
     }
 
 

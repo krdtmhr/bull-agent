@@ -33,17 +33,21 @@ class MarketData:
     us10y_change: float
     us10y_change_pct: float
 
+    data_as_of: str = ""
 
-def _fetch_ticker(symbol: str) -> tuple[float, float, float]:
+
+def _fetch_ticker(symbol: str) -> tuple[float, float, float, str]:
     ticker = yf.Ticker(symbol)
-    hist = ticker.history(period="2d")
+    hist = ticker.history(period="5d")
     if len(hist) < 2:
-        hist = ticker.history(period="5d")
+        raise ValueError(f"{symbol}: データが2行未満")
     close_today = float(hist["Close"].iloc[-1])
     close_prev = float(hist["Close"].iloc[-2])
     change = close_today - close_prev
     change_pct = (change / close_prev) * 100
-    return close_today, change, change_pct
+    # タイムゾーンを除いた日付文字列
+    data_date = str(hist.index[-1].date())
+    return close_today, change, change_pct, data_date
 
 
 def fetch_market_data() -> MarketData:
@@ -77,4 +81,5 @@ def fetch_market_data() -> MarketData:
         us10y_rate=us10y[0],
         us10y_change=us10y[1],
         us10y_change_pct=us10y[2],
+        data_as_of=nikkei[3],
     )
