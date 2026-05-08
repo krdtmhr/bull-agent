@@ -58,6 +58,7 @@ def fetch_market_data() -> MarketData:
     cme = _fetch_ticker("NKD=F")
     vix = _fetch_ticker("^VIX")
     us10y = _fetch_ticker("^TNX")
+    print(f"[market_data] 日経基準日={nikkei[3]} S&P500={sp500[3]} VIX={vix[3]}")
 
     return MarketData(
         nikkei_close=nikkei[0],
