@@ -1,7 +1,4 @@
-import csv
-import urllib.request
 from dataclasses import dataclass
-from datetime import date, timedelta
 from typing import Optional
 
 import yfinance as yf
@@ -41,48 +38,27 @@ class MarketData:
 
 
 def _fetch_ticker(symbol: str) -> tuple[float, float, float, str]:
-    ticker = yf.Ticker(symbol)
-    hist = ticker.history(period="5d")
-    if len(hist) < 2:
-        raise ValueError(f"{symbol}: データが2行未満")
-    close_today = float(hist["Close"].iloc[-1])
-    close_prev = float(hist["Close"].iloc[-2])
+    # ticker.history()は^N225で古いデータを返すバグがあるため yf.download() を使う
+    df = yf.download(symbol, period="5d", interval="1d", auto_adjust=False, progress=False)
+    if df.empty:
+        raise ValueError(f"{symbol}: データ取得失敗")
+    close = df["Close"]
+    # 新しいyfinanceはMultiIndexカラムになる場合がある
+    if hasattr(close, "columns"):
+        close = close.iloc[:, 0]
+    close = close.dropna()
+    if len(close) < 2:
+        raise ValueError(f"{symbol}: 有効データが2行未満")
+    close_today = float(close.iloc[-1])
+    close_prev = float(close.iloc[-2])
     change = close_today - close_prev
     change_pct = (change / close_prev) * 100
-    data_date = str(hist.index[-1].date())
+    data_date = str(close.index[-1].date())
     return close_today, change, change_pct, data_date
 
 
-def _fetch_nikkei_stooq() -> tuple[float, float, float, str]:
-    """Stooq経由で日経225を取得。yfinance ^N225 は遅延が多いためこちらを優先する。"""
-    today = date.today()
-    start = (today - timedelta(days=14)).strftime("%Y%m%d")
-    end = today.strftime("%Y%m%d")
-    url = f"https://stooq.com/q/d/l/?s=%5Enkx&d1={start}&d2={end}&i=d"
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        lines = resp.read().decode("utf-8").strip().split("\n")
-    rows = list(csv.DictReader(lines))
-    if len(rows) < 2:
-        raise ValueError(f"Stooq: データ不足 ({len(rows)}行)")
-    # Stooqは降順（最新が先頭）
-    latest = rows[0]
-    prev = rows[1]
-    close_today = float(latest["Close"])
-    close_prev = float(prev["Close"])
-    change = close_today - close_prev
-    change_pct = (change / close_prev) * 100
-    return close_today, change, change_pct, latest["Date"]
-
-
 def fetch_market_data() -> MarketData:
-    # 日経225はStooqを優先（yfinance ^N225 は遅延バグが多い）
-    try:
-        nikkei = _fetch_nikkei_stooq()
-        print(f"[market_data] 日経: Stooq ({nikkei[3]}) {nikkei[0]:.0f}")
-    except Exception as e:
-        print(f"[market_data] Stooq失敗、yfinanceにフォールバック: {e}")
-        nikkei = _fetch_ticker("^N225")
+    nikkei = _fetch_ticker("^N225")
     sp500 = _fetch_ticker("^GSPC")
     nasdaq = _fetch_ticker("^IXIC")
     usdjpy = _fetch_ticker("USDJPY=X")
